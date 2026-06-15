@@ -1,4 +1,4 @@
-import { Worker } from "bullmq";
+import { Worker, type ConnectionOptions } from "bullmq";
 import { redis } from "@/lib/redis";
 import { prisma } from "@/lib/prisma";
 import { syncLeadToZoho } from "./zoho";
@@ -8,7 +8,7 @@ import { ZOHO_QUEUE, REPORT_QUEUE } from "./queue";
 // Standalone worker process. Run with: tsx src/server/worker.ts
 // Handles Zoho sync (with built-in BullMQ retry/backoff) and report jobs.
 
-const connection = redis;
+const connection = redis as unknown as ConnectionOptions;
 
 const zohoWorker = new Worker(
   ZOHO_QUEUE,

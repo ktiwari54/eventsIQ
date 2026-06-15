@@ -1,4 +1,4 @@
-import { Queue } from "bullmq";
+import { Queue, type ConnectionOptions } from "bullmq";
 import { redis } from "@/lib/redis";
 
 // BullMQ queues for background work. The connection is shared with the app's
@@ -9,7 +9,9 @@ export const ZOHO_QUEUE = "zoho-sync";
 export const SCORING_QUEUE = "lead-scoring";
 export const REPORT_QUEUE = "report-generation";
 
-const connection = redis;
+// BullMQ bundles its own nested ioredis; cast our shared client to BullMQ's
+// ConnectionOptions to reconcile the duplicate ioredis type identities.
+const connection = redis as unknown as ConnectionOptions;
 
 export const zohoQueue = new Queue(ZOHO_QUEUE, { connection });
 export const reportQueue = new Queue(REPORT_QUEUE, { connection });
