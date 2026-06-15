@@ -34,6 +34,10 @@ const NAV = [
       { href: "/reports", label: "📄 Reports" },
     ],
   },
+  {
+    section: "Admin",
+    items: [{ href: "/admin/users", label: "⚙ Users & Org" }],
+  },
 ];
 
 export function Sidebar() {
