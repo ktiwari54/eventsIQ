@@ -32,10 +32,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
       - run: npm install --no-audit --no-fund
       - run: npm run db:generate
-      - run: npm run db:deploy
+      # No migration history yet — push the schema directly to the test DB.
+      - run: npx prisma db push --schema=prisma/schema.prisma --skip-generate
       - name: Lint
         run: npm run lint
       - name: Unit tests
@@ -49,7 +49,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: "20", cache: "npm" }
+        with: { node-version: "20" }
       - run: npm install --no-audit --no-fund
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e --workspace=apps/web || true
