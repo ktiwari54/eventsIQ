@@ -43,6 +43,16 @@ Status codes: `401` unauthenticated · `403` forbidden · `422` validation ·
 | POST | `/api/budgets/:id/approve` | `budget:update` — workflow transition |
 | GET | `/api/roi?recompute=1` | `roi:read` — ranked metrics + forecast |
 
+## Uploads & Files (AWS S3)
+| Method | Path | Permission |
+|---|---|---|
+| POST | `/api/uploads/presign` | `event:read` — returns a presigned S3 PUT URL + canonical publicUrl |
+| GET/POST | `/api/events/:id/documents` | `event:read` / `event:update` |
+| GET/POST | `/api/expenses?budgetId&eventId` | `expense:read` / `expense:create` — POST rolls amount into budget actuals |
+
+Upload flow: client `POST /api/uploads/presign` → `PUT` file directly to the
+returned `uploadUrl` (S3, SSE-AES256) → persist `publicUrl` against the record.
+
 ## AI Copilot
 | Method | Path | Permission |
 |---|---|---|

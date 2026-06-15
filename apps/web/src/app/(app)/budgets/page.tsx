@@ -30,7 +30,7 @@ export default function BudgetsPage() {
         <h1 className="text-lg font-bold">💰 Budgets</h1>
         <div className="flex gap-2">
           <Link href="/budgets/approvals" className="btn btn-ghost">✅ Approvals</Link>
-          <button className="btn btn-primary">＋ Add Expense</button>
+          <Link href="/budgets/expense" className="btn btn-primary">＋ Add Expense</Link>
         </div>
       </div>
       <div className="card overflow-x-auto">
