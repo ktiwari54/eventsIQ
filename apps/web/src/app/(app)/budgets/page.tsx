@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import { apiGet } from "@/lib/client";
 
 interface BudgetRow {
@@ -27,7 +28,10 @@ export default function BudgetsPage() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-lg font-bold">💰 Budgets</h1>
-        <button className="btn btn-primary">＋ Add Expense</button>
+        <div className="flex gap-2">
+          <Link href="/budgets/approvals" className="btn btn-ghost">✅ Approvals</Link>
+          <button className="btn btn-primary">＋ Add Expense</button>
+        </div>
       </div>
       <div className="card overflow-x-auto">
         {isLoading ? (
