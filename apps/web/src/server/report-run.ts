@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { putObject } from "@/lib/s3";
 import { sendMail, emailLayout } from "@/lib/email";
+import { notify } from "./notifications";
 import { buildDataset, toCsv } from "./report-data";
 import { generateReport } from "./reports";
 import type { ReportFormat, ReportType } from "@prisma/client";
@@ -43,6 +44,15 @@ export async function runReport(opts: {
     const updated = await prisma.reportRun.update({
       where: { id: run.id },
       data: { status: "SUCCESS", url, rowCount: ds.rows.length },
+    });
+
+    // Org-wide in-app notification with the download link.
+    await notify({
+      orgId: opts.orgId,
+      type: "report",
+      title: `${ds.title} ready`,
+      body: `${ds.rows.length} rows · ${opts.format}`,
+      link: url,
     });
     if (opts.scheduleId) {
       const schedule = await prisma.reportSchedule.update({

@@ -7,7 +7,7 @@
     "build": "prisma generate --schema=../../prisma/schema.prisma && next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "jest --passWithNoTests",
+    "test": "jest --coverage --passWithNoTests",
     "test:watch": "jest --watch",
     "test:e2e": "playwright test"
   },

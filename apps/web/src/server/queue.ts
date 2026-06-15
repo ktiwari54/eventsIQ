@@ -29,6 +29,11 @@ export async function enqueueZohoSync(orgId: string, leadId: string): Promise<vo
   );
 }
 
+/** Enqueue a full bidirectional Zoho sync (contacts out, deals in) for an org. */
+export async function enqueueZohoFullSync(orgId: string): Promise<void> {
+  await zohoQueue.add("full-sync", { orgId }, { attempts: 2, removeOnComplete: 100 });
+}
+
 export async function enqueueReport(
   orgId: string,
   type: string,

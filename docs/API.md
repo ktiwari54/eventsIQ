@@ -102,10 +102,18 @@ attach to the event automatically.
 | GET | `/api/zoho/oauth/callback` | Zoho redirect — exchanges code, stores tokens |
 | GET | `/api/zoho/sync-log` | `event:read` — connection status + sync log |
 
+## Notifications
+| Method | Path | Permission |
+|---|---|---|
+| GET | `/api/notifications?unread=1` | `dashboard:read` — current user's notifications + unread count |
+| PATCH | `/api/notifications` | `dashboard:read` — mark one (`id`) or all (`all:true`) read |
+
 ## Integration / Ops
 | Method | Path | Auth |
 |---|---|---|
-| POST | `/api/zoho/webhook?orgId=` | HMAC `x-zoho-signature` |
+| POST | `/api/zoho/sync` | `event:update` — queue full bidirectional sync (contacts out, deals in) |
+| POST | `/api/zoho/webhook?orgId=` | HMAC `x-zoho-signature` — Lead/Contact/Account/Deal events |
+| GET | `/api/metrics` | Prometheus scrape (optional `METRICS_TOKEN` bearer) |
 | GET | `/api/health` | public liveness/readiness |
 
 ### Example

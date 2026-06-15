@@ -1,6 +1,7 @@
 import { handler } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { sendMail, emailLayout } from "@/lib/email";
+import { notifyRoles } from "@/server/notifications";
 import { z } from "zod";
 
 const approveSchema = z.object({
@@ -56,6 +57,12 @@ async function notifyApproval(
     });
     recipients = finance.map((u) => u.email);
     line = `The <b>${category}</b> budget for <b>${eventName}</b> was manager-approved and now awaits finance approval.`;
+    await notifyRoles(orgId, ["FINANCE_MANAGER"], {
+      type: "budget",
+      title: "Budget awaiting finance approval",
+      body: `${category} — ${eventName}`,
+      link: "/budgets/approvals",
+    });
   } else {
     // Final outcomes go back to the event owner / requester.
     if (ownerEmail) recipients = [ownerEmail];
@@ -63,6 +70,12 @@ async function notifyApproval(
       decision === "REJECTED"
         ? `The <b>${category}</b> budget for <b>${eventName}</b> was <b style="color:#EF4444">rejected</b>.`
         : `The <b>${category}</b> budget for <b>${eventName}</b> is now <b style="color:#10B981">approved</b>.`;
+    await notifyRoles(orgId, ["EVENT_MANAGER", "FINANCE_MANAGER"], {
+      type: "budget",
+      title: `Budget ${decision === "REJECTED" ? "rejected" : "approved"}`,
+      body: `${category} — ${eventName}`,
+      link: "/budgets",
+    });
   }
 
   if (recipients.length) {

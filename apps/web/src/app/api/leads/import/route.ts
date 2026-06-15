@@ -2,6 +2,7 @@ import { handler } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { parseCsv } from "@/server/csv";
 import { scoreLead } from "@/server/scoring";
+import { notify } from "@/server/notifications";
 import type { LeadSource, Prisma } from "@prisma/client";
 import { z } from "zod";
 
@@ -73,6 +74,17 @@ export const POST = handler(
     const result = data.length
       ? await prisma.lead.createMany({ data, skipDuplicates: true })
       : { count: 0 };
+
+    if (result.count > 0) {
+      await notify({
+        orgId: ctx.orgId,
+        userId: ctx.userId,
+        type: "lead",
+        title: `Imported ${result.count} leads`,
+        body: `${rows.length - data.length} skipped`,
+        link: "/leads",
+      });
+    }
 
     return { created: result.count, skipped: rows.length - data.length, errors: errors.slice(0, 50) };
   },
