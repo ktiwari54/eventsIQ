@@ -1,6 +1,7 @@
-import type { Config } from "jest";
-
-const config: Config = {
+// Plain-JS Jest config so Jest doesn't require ts-node to load it.
+// ts-jest still compiles the TypeScript test sources.
+/** @type {import('jest').Config} */
+module.exports = {
   preset: "ts-jest",
   testEnvironment: "node",
   roots: ["<rootDir>/src", "<rootDir>/tests"],
@@ -11,5 +12,3 @@ const config: Config = {
     global: { branches: 70, functions: 80, lines: 85, statements: 85 },
   },
 };
-
-export default config;
