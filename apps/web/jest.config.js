@@ -13,6 +13,7 @@ module.exports = {
     "src/server/scoring.ts",
     "src/server/roi.ts",
     "src/server/csv.ts",
+    "src/server/cron.ts",
     "src/server/validation.ts",
     "src/lib/metrics.ts",
     "src/lib/rbac.ts",
