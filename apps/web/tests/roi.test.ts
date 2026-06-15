@@ -31,4 +31,15 @@ describe("ROI engine", () => {
     expect(f.trend).toBe("up");
     expect(f.projected).toBeGreaterThan(400);
   });
+
+  it("returns flat for empty history and for a downward series", () => {
+    expect(forecastRevenue([])).toEqual({ projected: 0, trend: "flat" });
+    expect(forecastRevenue([400, 300, 200, 100]).trend).toBe("down");
+    expect(forecastRevenue([100, 100, 100]).trend).toBe("flat");
+  });
+
+  it("classifies KEEP and REVIEW verdicts", () => {
+    expect(computeRoi({ totalCost: 100, revenue: 200, totalLeads: 10, qualifiedLeads: 5, convertedLeads: 2 }).verdict).toBe("KEEP");
+    expect(computeRoi({ totalCost: 100, revenue: 130, totalLeads: 10, qualifiedLeads: 5, convertedLeads: 2 }).verdict).toBe("REVIEW");
+  });
 });

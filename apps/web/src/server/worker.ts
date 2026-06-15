@@ -1,7 +1,7 @@
 import { Worker, type ConnectionOptions } from "bullmq";
 import { redis } from "@/lib/redis";
 import { prisma } from "@/lib/prisma";
-import { syncLeadToZoho } from "./zoho";
+import { syncLeadToZoho, syncContactToZoho, pullDealsFromZoho } from "./zoho";
 import { runReport } from "./report-run";
 import { ZOHO_QUEUE, REPORT_QUEUE } from "./queue";
 import type { ReportFormat, ReportType } from "@prisma/client";
@@ -18,6 +18,12 @@ const zohoWorker = new Worker(
       const { orgId, leadId } = job.data as { orgId: string; leadId: string };
       const lead = await prisma.lead.findUnique({ where: { id: leadId } });
       if (lead) await syncLeadToZoho(orgId, lead);
+    } else if (job.name === "full-sync") {
+      // Push every lead as a Contact, then pull Deal outcomes back.
+      const { orgId } = job.data as { orgId: string };
+      const leads = await prisma.lead.findMany({ where: { orgId }, take: 5000 });
+      for (const lead of leads) await syncContactToZoho(orgId, lead);
+      await pullDealsFromZoho(orgId);
     }
   },
   { connection, concurrency: 5 },

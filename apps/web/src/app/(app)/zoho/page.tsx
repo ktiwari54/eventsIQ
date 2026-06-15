@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import { apiGet } from "@/lib/client";
+import { apiGet, apiSend } from "@/lib/client";
 
 interface SyncData {
   connected: boolean;
@@ -35,9 +35,26 @@ function ZohoDashboard() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-lg font-bold">🔗 Zoho CRM</h1>
-        <a href="/api/zoho/oauth/authorize" className="btn btn-primary">
-          {data?.connected ? "Reconnect" : "Connect Zoho"}
-        </a>
+        <div className="flex gap-2">
+          {data?.connected && (
+            <button
+              className="btn btn-ghost"
+              onClick={async () => {
+                try {
+                  await apiSend("/api/zoho/sync", "POST");
+                  alert("Full sync queued — contacts pushed, deals pulled in the background.");
+                } catch (e) {
+                  alert((e as Error).message);
+                }
+              }}
+            >
+              ⚡ Full Sync
+            </button>
+          )}
+          <a href="/api/zoho/oauth/authorize" className="btn btn-primary">
+            {data?.connected ? "Reconnect" : "Connect Zoho"}
+          </a>
+        </div>
       </div>
 
       {justConnected && (

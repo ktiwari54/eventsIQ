@@ -5,6 +5,7 @@ import type { Role } from "@prisma/client";
 import { assertCan, ForbiddenError, type Permission } from "./rbac";
 import { prisma } from "./prisma";
 import { rateLimit } from "./rate-limit";
+import { incCounter, observeHistogram } from "./metrics";
 
 export interface AuthContext {
   userId: string;
@@ -23,14 +24,22 @@ export function handler(
   opts: { auditAction?: string } = {},
 ) {
   return async (req: NextRequest, route: { params: Promise<Record<string, string>> }) => {
+    const start = Date.now();
+    const path = new URL(req.url).pathname;
+    const record = (status: number) => {
+      incCounter("eventiq_http_requests_total", { method: req.method, status: String(status) }, "Total API requests");
+      observeHistogram("eventiq_http_request_duration_ms", Date.now() - start, { method: req.method }, "API request duration (ms)");
+    };
     try {
       const limited = await rateLimit(req);
       if (!limited.ok) {
+        record(429);
         return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
       }
 
       const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
       if (!token?.uid) {
+        record(401);
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
       const ctx: AuthContext = {
@@ -57,9 +66,15 @@ export function handler(
           .catch(() => {});
       }
 
+      record(200);
       return NextResponse.json(result ?? { ok: true });
     } catch (err) {
-      return toErrorResponse(err);
+      const res = toErrorResponse(err);
+      record(res.status);
+      if (res.status >= 500) {
+        incCounter("eventiq_http_errors_total", { path }, "Total 5xx API errors");
+      }
+      return res;
     }
   };
 }

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { forecastRevenue } from "./roi";
+import { searchKnowledge } from "./knowledge";
 
 // AI Copilot: a natural-language query interface over EventIQ data. It grounds
 // answers in live DB aggregates (a lightweight RAG pattern) and optionally
@@ -70,19 +71,32 @@ export async function askCopilot(orgId: string, question: string): Promise<Copil
     return { source: "rules", answer: `📊 Last events by ROI — ${list}`, data: ctx.roi.slice(0, 5) };
   }
 
-  // Fall back to OpenAI with the grounded context when an API key is present.
+  // RAG: retrieve matching records (documents, notes, objectives, vendors).
+  const hits = await searchKnowledge(orgId, question);
+
+  // Fall back to OpenAI with the grounded context + retrieved docs.
   if (process.env.OPENAI_API_KEY) {
     try {
-      return await askOpenAI(question, ctx);
+      return await askOpenAI(question, { ...ctx, knowledge: hits });
     } catch {
       /* fall through to generic */
     }
   }
 
+  // No LLM key — surface the retrieved snippets directly when we found any.
+  if (hits.length) {
+    const cited = hits.map((h) => `• [${h.source}] ${h.title}: ${h.snippet}`).join("\n");
+    return {
+      source: "rules",
+      answer: `Here's what I found in your records:\n${cited}`,
+      data: hits,
+    };
+  }
+
   return {
     source: "rules",
     answer:
-      "I can answer questions about ROI, hot leads, revenue forecasts and event comparisons. Try: \"Which event had the best ROI?\"",
+      "I can answer questions about ROI, hot leads, revenue forecasts, event comparisons, and search your events, leads, documents and vendors. Try: \"Which event had the best ROI?\"",
   };
 }
 
