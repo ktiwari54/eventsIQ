@@ -4,9 +4,11 @@
 
 export function initObservability() {
   if (process.env.SENTRY_DSN) {
-    // Loaded dynamically to avoid bundling when unused.
-    import("@sentry/nextjs")
-      .then((Sentry) =>
+    // Optional dependency — resolved at runtime only when installed + SENTRY_DSN set.
+    // A non-literal specifier stops `next build` from type-checking the module path.
+    const sentryModule = "@sentry/nextjs";
+    import(sentryModule)
+      .then((Sentry: { init: (opts: Record<string, unknown>) => void }) =>
         Sentry.init({
           dsn: process.env.SENTRY_DSN,
           tracesSampleRate: 0.1,
