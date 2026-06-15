@@ -1,0 +1,12 @@
+# --- EventIQ BullMQ worker image ---
+FROM node:20-alpine
+RUN apk add --no-cache openssl
+WORKDIR /app
+COPY package.json package-lock.json* ./
+COPY apps/web/package.json apps/web/package.json
+COPY prisma ./prisma
+RUN npm install --no-audit --no-fund
+COPY . .
+RUN npx prisma generate --schema=prisma/schema.prisma
+ENV NODE_ENV=production
+CMD ["npx", "tsx", "apps/web/src/server/worker.ts"]

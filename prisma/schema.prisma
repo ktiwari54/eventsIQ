@@ -1,0 +1,443 @@
+// EventIQ — Enterprise data model
+// PostgreSQL + Prisma. Designed to scale to 100k+ leads and thousands of events.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearchPostgres"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------------------------------------------------------------
+// Enums
+// ----------------------------------------------------------------------------
+enum Role {
+  SUPER_ADMIN
+  FINANCE_MANAGER
+  EVENT_MANAGER
+  SALES_MANAGER
+  SALES_EXECUTIVE
+  VENDOR
+  MANAGEMENT
+}
+
+enum UserStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+}
+
+enum EventStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum EventType {
+  TRADE_SHOW
+  EXHIBITION
+  CONFERENCE
+  BRAND_LAUNCH
+  ROADSHOW
+  WEBINAR
+}
+
+enum LeadSource {
+  ZOHO_FORM
+  QR_SCAN
+  MANUAL
+  CSV_UPLOAD
+  BUSINESS_CARD_OCR
+  MOBILE_APP
+}
+
+enum LeadGrade {
+  A_PLUS
+  A
+  B
+  C
+  D
+}
+
+enum LeadHeat {
+  HOT
+  WARM
+  COLD
+}
+
+enum BudgetCategory {
+  BOOTH
+  TRAVEL
+  HOTEL
+  PRINTING
+  BRANDING
+  LOGISTICS
+  STAFFING
+  FOOD
+  MARKETING
+}
+
+enum ApprovalStatus {
+  PENDING
+  MANAGER_APPROVED
+  FINANCE_APPROVED
+  APPROVED
+  REJECTED
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  BLOCKED
+}
+
+enum SyncStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum SyncDirection {
+  INBOUND
+  OUTBOUND
+}
+
+// ----------------------------------------------------------------------------
+// Tenancy & Identity
+// ----------------------------------------------------------------------------
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users        User[]
+  events       Event[]
+  leads        Lead[]
+  vendors      Vendor[]
+  zohoConfig   ZohoConfig?
+}
+
+model User {
+  id        String     @id @default(cuid())
+  orgId     String
+  name      String
+  email     String     @unique
+  role      Role       @default(SALES_EXECUTIVE)
+  status    UserStatus @default(ACTIVE)
+  password  String? // hashed; null when using SSO
+  image     String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  organization   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  assignedLeads  Lead[]       @relation("LeadOwner")
+  ownedEvents    Event[]      @relation("EventOwner")
+  tasks          Task[]       @relation("TaskAssignee")
+  auditLogs      AuditLog[]
+  teamMemberships EventTeamMember[]
+
+  @@index([orgId])
+  @@index([role])
+}
+
+// ----------------------------------------------------------------------------
+// Events
+// ----------------------------------------------------------------------------
+model Event {
+  id              String      @id @default(cuid())
+  orgId           String
+  name            String
+  type            EventType
+  category        String?
+  status          EventStatus @default(DRAFT)
+  startDate       DateTime
+  endDate         DateTime
+  venue           String?
+  city            String?
+  country         String?
+  organizer       String?
+  objectives      String?
+  expectedLeads   Int         @default(0)
+  expectedRevenue Decimal     @default(0) @db.Decimal(14, 2)
+  budgetTotal     Decimal     @default(0) @db.Decimal(14, 2)
+  ownerId         String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  organization Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  owner        User?             @relation("EventOwner", fields: [ownerId], references: [id])
+  leads        Lead[]
+  budgets      Budget[]
+  expenses     Expense[]
+  roiMetric    RoiMetric?
+  tasks        Task[]
+  documents    Document[]
+  team         EventTeamMember[]
+  checklist    ChecklistItem[]
+
+  @@index([orgId, status])
+  @@index([startDate])
+}
+
+model EventTeamMember {
+  id      String @id @default(cuid())
+  eventId String
+  userId  String
+  roleTag String?
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+}
+
+model ChecklistItem {
+  id      String  @id @default(cuid())
+  eventId String
+  title   String
+  done    Boolean @default(false)
+  order   Int     @default(0)
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+}
+
+// ----------------------------------------------------------------------------
+// Leads + AI Scoring
+// ----------------------------------------------------------------------------
+model Lead {
+  id                   String     @id @default(cuid())
+  orgId                String
+  eventId              String?
+  ownerId              String?
+  name                 String
+  company              String?
+  designation          String?
+  email                String?
+  phone                String?
+  city                 String?
+  country              String?
+  interestedBrands     String[]   @default([])
+  monthlyPurchaseVolume Decimal?  @db.Decimal(14, 2)
+  source               LeadSource @default(MANUAL)
+  notes                String?
+  // AI scoring outputs
+  score                Int        @default(0)
+  grade                LeadGrade  @default(D)
+  heat                 LeadHeat   @default(COLD)
+  scoreFactors         Json?
+  aiSuggestion         String?
+  // Zoho sync
+  zohoId               String?
+  zohoSyncedAt         DateTime?
+  converted            Boolean    @default(false)
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  event        Event?       @relation(fields: [eventId], references: [id])
+  owner        User?        @relation("LeadOwner", fields: [ownerId], references: [id])
+
+  @@index([orgId, grade])
+  @@index([orgId, heat])
+  @@index([eventId])
+  @@index([zohoId])
+  @@index([email])
+}
+
+// ----------------------------------------------------------------------------
+// Vendors
+// ----------------------------------------------------------------------------
+model Vendor {
+  id           String   @id @default(cuid())
+  orgId        String
+  name         String
+  vendorType   String
+  gstNumber    String?
+  pan          String?
+  contactPerson String?
+  email        String?
+  phone        String?
+  city         String?
+  country      String?
+  rating       Float    @default(0)
+  slaScore     Float?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  expenses     Expense[]
+  evaluations  VendorEvaluation[]
+
+  @@index([orgId, vendorType])
+}
+
+model VendorEvaluation {
+  id        String   @id @default(cuid())
+  vendorId  String
+  eventId   String?
+  quality   Int
+  timeline  Int
+  cost      Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([vendorId])
+}
+
+// ----------------------------------------------------------------------------
+// Budget & Finance
+// ----------------------------------------------------------------------------
+model Budget {
+  id            String         @id @default(cuid())
+  eventId       String
+  category      BudgetCategory
+  estimated     Decimal        @default(0) @db.Decimal(14, 2)
+  approved      Decimal        @default(0) @db.Decimal(14, 2)
+  actual        Decimal        @default(0) @db.Decimal(14, 2)
+  status        ApprovalStatus @default(PENDING)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  event    Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  expenses Expense[]
+
+  @@index([eventId])
+}
+
+model Expense {
+  id         String   @id @default(cuid())
+  budgetId   String
+  eventId    String
+  vendorId   String?
+  description String?
+  amount     Decimal  @db.Decimal(14, 2)
+  invoiceUrl String?
+  receiptUrl String?
+  createdAt  DateTime @default(now())
+
+  budget Budget  @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  event  Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  vendor Vendor? @relation(fields: [vendorId], references: [id])
+
+  @@index([budgetId])
+  @@index([eventId])
+}
+
+// ----------------------------------------------------------------------------
+// ROI
+// ----------------------------------------------------------------------------
+model RoiMetric {
+  id             String   @id @default(cuid())
+  eventId        String   @unique
+  totalCost      Decimal  @default(0) @db.Decimal(14, 2)
+  revenue        Decimal  @default(0) @db.Decimal(14, 2)
+  roi            Float    @default(0)
+  costPerLead    Float    @default(0)
+  costPerQL      Float    @default(0)
+  revenuePerLead Float    @default(0)
+  conversionRate Float    @default(0)
+  rank           Int?
+  computedAt     DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+// ----------------------------------------------------------------------------
+// Tasks & Documents
+// ----------------------------------------------------------------------------
+model Task {
+  id         String     @id @default(cuid())
+  eventId    String
+  assignedTo String?
+  title      String
+  status     TaskStatus @default(TODO)
+  dueDate    DateTime?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  event    Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  assignee User? @relation("TaskAssignee", fields: [assignedTo], references: [id])
+
+  @@index([eventId, status])
+}
+
+model Document {
+  id        String   @id @default(cuid())
+  eventId   String
+  fileUrl   String
+  fileType  String
+  fileName  String?
+  createdAt DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+}
+
+// ----------------------------------------------------------------------------
+// Zoho CRM Integration
+// ----------------------------------------------------------------------------
+model ZohoConfig {
+  id           String   @id @default(cuid())
+  orgId        String   @unique
+  clientId     String
+  clientSecret String
+  refreshToken String?
+  accessToken  String?
+  apiDomain    String   @default("https://www.zohoapis.com")
+  expiresAt    DateTime?
+  connected    Boolean  @default(false)
+  updatedAt    DateTime @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+}
+
+model ZohoSyncLog {
+  id         String        @id @default(cuid())
+  orgId      String
+  entity     String // Lead, Contact, Account, Deal, Task, Note
+  recordId   String?
+  zohoId     String?
+  direction  SyncDirection
+  status     SyncStatus    @default(PENDING)
+  attempts   Int           @default(0)
+  error      String?
+  payload    Json?
+  createdAt  DateTime      @default(now())
+
+  @@index([orgId, status])
+  @@index([entity])
+}
+
+// ----------------------------------------------------------------------------
+// Audit
+// ----------------------------------------------------------------------------
+model AuditLog {
+  id        String   @id @default(cuid())
+  orgId     String
+  userId    String?
+  action    String
+  entity    String?
+  entityId  String?
+  metadata  Json?
+  ip        String?
+  timestamp DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([orgId, timestamp])
+  @@index([userId])
+}

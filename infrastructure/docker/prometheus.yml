@@ -1,0 +1,12 @@
+# Prometheus scrape config for the EventIQ stack.
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: eventiq-web
+    metrics_path: /api/metrics
+    static_configs:
+      - targets: ["web:3000"]
+  - job_name: eventiq-worker
+    static_configs:
+      - targets: ["worker:9100"]
