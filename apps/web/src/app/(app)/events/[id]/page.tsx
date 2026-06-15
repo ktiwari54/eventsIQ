@@ -74,6 +74,7 @@ export default function EventDetailPage() {
         <Tasks eventId={id} />
         <Team eventId={id} />
         <Documents eventId={id} />
+        <CaptureQr eventId={id} />
       </div>
     </div>
   );
@@ -226,6 +227,24 @@ function Team({ eventId }: { eventId: string }) {
           {users?.items.map((u) => <option key={u.id} value={u.id}>{u.name} ({u.role})</option>)}
         </select>
         <button className="btn btn-ghost !py-1" onClick={() => userId && add.mutate()}>Assign</button>
+      </div>
+    </div>
+  );
+}
+
+// ---- Lead-capture QR ----
+function CaptureQr({ eventId }: { eventId: string }) {
+  const src = `/api/events/${eventId}/qr`;
+  return (
+    <div className="card">
+      <h2 className="text-sm font-bold mb-3">📱 Lead-Capture QR</h2>
+      <p className="text-muted text-xs mb-3">
+        Display at your booth — visitors scan to self-capture into this event.
+      </p>
+      <div className="flex items-center gap-4">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt="Event capture QR" className="w-32 h-32 rounded bg-white p-1" />
+        <a href={src} download className="btn btn-ghost">⬇ Download PNG</a>
       </div>
     </div>
   );

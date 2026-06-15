@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { apiSend } from "@/lib/client";
 import type { ParsedCard } from "@/server/ocr";
 
@@ -26,7 +26,17 @@ const EMPTY: LeadForm = {
 };
 
 export default function CaptureLeadPage() {
+  return (
+    <Suspense fallback={<p className="text-muted">Loading…</p>}>
+      <CaptureLeadInner />
+    </Suspense>
+  );
+}
+
+function CaptureLeadInner() {
   const router = useRouter();
+  // QR codes link here as /leads/capture?event=<id> so booth scans attach to it.
+  const eventId = useSearchParams().get("event") ?? undefined;
   const [form, setForm] = useState<LeadForm>(EMPTY);
   const [preview, setPreview] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
@@ -85,6 +95,7 @@ export default function CaptureLeadPage() {
         email: form.email || undefined,
         phone: form.phone || undefined,
         city: form.city || undefined,
+        eventId,
         interestedBrands: form.interestedBrands
           ? form.interestedBrands.split(",").map((s) => s.trim()).filter(Boolean)
           : [],

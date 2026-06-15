@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { putObject } from "@/lib/s3";
+import { sendMail, emailLayout } from "@/lib/email";
 import { buildDataset, toCsv } from "./report-data";
 import { generateReport } from "./reports";
 import type { ReportFormat, ReportType } from "@prisma/client";
@@ -44,10 +45,22 @@ export async function runReport(opts: {
       data: { status: "SUCCESS", url, rowCount: ds.rows.length },
     });
     if (opts.scheduleId) {
-      await prisma.reportSchedule.update({
+      const schedule = await prisma.reportSchedule.update({
         where: { id: opts.scheduleId },
         data: { lastRunAt: new Date(), lastUrl: url },
       });
+      // Email the report download link to the schedule's recipients.
+      if (schedule.recipients.length) {
+        await sendMail({
+          to: schedule.recipients,
+          subject: `${schedule.name} — ${opts.type} report ready`,
+          html: emailLayout(
+            `${ds.title} ready`,
+            `Your scheduled <b>${opts.type}</b> report (${ds.rows.length} rows) is ready. ` +
+              `<a href="${url}" style="color:#3B82F6">Download (${opts.format})</a>.`,
+          ),
+        }).catch(() => {});
+      }
     }
     return updated;
   } catch (err) {
