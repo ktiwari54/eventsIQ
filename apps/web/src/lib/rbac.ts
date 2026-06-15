@@ -48,7 +48,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "event:read",
   ],
   VENDOR: ["vendor:portal", "expense:read:own"],
-  MANAGEMENT: ["dashboard:read", "report:read", "roi:read", "event:read", "lead:read"],
+  MANAGEMENT: ["dashboard:read", "report:read", "roi:read", "event:read", "lead:read", "org:read"],
 };
 
 export function can(role: Role, permission: Permission): boolean {

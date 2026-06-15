@@ -32,6 +32,7 @@ Status codes: `401` unauthenticated · `403` forbidden · `422` validation ·
 |---|---|---|
 | GET | `/api/leads?grade&heat&eventId&q&page` | `lead:read` (execs scoped to own) |
 | POST | `/api/leads` | `lead:create` — runs AI scoring + queues Zoho sync |
+| POST | `/api/leads/import` | `lead:create` — bulk CSV import, AI-scores each row |
 | PUT | `/api/leads/:id` | `lead:update` — re-scores |
 | DELETE | `/api/leads/:id` | `lead:delete` |
 
@@ -67,6 +68,9 @@ returned `uploadUrl` (S3, SSE-AES256) → persist `publicUrl` against the record
 | GET/POST/DELETE | `/api/events/:id/team` | `event:read` / `event:update` |
 | GET/POST | `/api/events/:id/documents` | `event:read` / `event:update` |
 | GET | `/api/users` | `event:read` — org users for assignment |
+| POST | `/api/users` | `user:manage` — invite/create a user (admin) |
+| PUT/DELETE | `/api/users/:id` | `user:manage` — change role/status, remove |
+| GET/PUT | `/api/org` | `org:read` / `user:manage` — org profile + rename |
 
 ## QR codes & badges
 | Method | Path | Permission |

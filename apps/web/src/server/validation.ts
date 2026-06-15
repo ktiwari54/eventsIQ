@@ -140,6 +140,33 @@ export const reportScheduleSchema = z.object({
   enabled: z.boolean().default(true),
 });
 
+const ROLE_ENUM = z.enum([
+  "SUPER_ADMIN",
+  "FINANCE_MANAGER",
+  "EVENT_MANAGER",
+  "SALES_MANAGER",
+  "SALES_EXECUTIVE",
+  "VENDOR",
+  "MANAGEMENT",
+]);
+
+export const userInviteSchema = z.object({
+  name: z.string().min(1).max(120),
+  email: z.string().email(),
+  role: ROLE_ENUM.default("SALES_EXECUTIVE"),
+  password: z.string().min(8).max(72).optional(),
+});
+
+export const userUpdateSchema = z.object({
+  name: z.string().min(1).max(120).optional(),
+  role: ROLE_ENUM.optional(),
+  status: z.enum(["ACTIVE", "INVITED", "SUSPENDED"]).optional(),
+});
+
+export const orgUpdateSchema = z.object({
+  name: z.string().min(2).max(160),
+});
+
 export type EventCreateInput = z.infer<typeof eventCreateSchema>;
 export type LeadCreateInput = z.infer<typeof leadCreateSchema>;
 export type VendorCreateInput = z.infer<typeof vendorCreateSchema>;

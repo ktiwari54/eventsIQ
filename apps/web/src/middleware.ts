@@ -14,5 +14,6 @@ export const config = {
     "/copilot/:path*",
     "/zoho",
     "/reports/:path*",
+    "/admin/:path*",
   ],
 };

@@ -41,6 +41,7 @@ export default function LeadsPage() {
         <h1 className="text-lg font-bold">👥 Leads {data ? `(${data.total})` : ""}</h1>
         <div className="flex gap-2">
           <Link href="/leads/capture" className="btn btn-primary">＋ Capture Lead</Link>
+          <Link href="/leads/import" className="btn btn-ghost">⬆ Import CSV</Link>
           <select className="bg-card border border-border rounded-lg px-3 py-2 text-sm" value={grade} onChange={(e) => setGrade(e.target.value)}>
             <option value="">All grades</option>
             {["A_PLUS", "A", "B", "C", "D"].map((g) => <option key={g} value={g}>{g}</option>)}
