@@ -96,6 +96,50 @@ export const budgetCreateSchema = z.object({
   actual: z.number().nonnegative().default(0),
 });
 
+export const checklistItemSchema = z.object({
+  title: z.string().min(1).max(200),
+  order: z.number().int().nonnegative().optional(),
+});
+
+export const checklistToggleSchema = z.object({
+  id: z.string().cuid(),
+  done: z.boolean(),
+});
+
+export const taskCreateSchema = z.object({
+  title: z.string().min(1).max(200),
+  assignedTo: z.string().cuid().optional(),
+  status: z.enum(["TODO", "IN_PROGRESS", "DONE", "BLOCKED"]).default("TODO"),
+  dueDate: z.coerce.date().optional(),
+});
+
+export const taskUpdateSchema = taskCreateSchema.partial();
+
+export const teamMemberSchema = z.object({
+  userId: z.string().cuid(),
+  roleTag: z.string().max(60).optional(),
+});
+
+export const vendorEvaluationSchema = z.object({
+  eventId: z.string().cuid().optional(),
+  quality: z.number().int().min(1).max(5),
+  timeline: z.number().int().min(1).max(5),
+  cost: z.number().int().min(1).max(5),
+  comment: z.string().max(1000).optional(),
+});
+
+export const reportScheduleSchema = z.object({
+  name: z.string().min(2).max(120),
+  type: z.enum(["EVENT", "LEAD", "ROI", "VENDOR", "BUDGET", "FINANCE"]),
+  format: z.enum(["PDF", "EXCEL", "CSV"]).default("PDF"),
+  cron: z
+    .string()
+    .regex(/^(\S+\s+){4}\S+$/, "Expected a 5-field cron expression")
+    .default("0 8 * * 1"),
+  recipients: z.array(z.string().email()).default([]),
+  enabled: z.boolean().default(true),
+});
+
 export type EventCreateInput = z.infer<typeof eventCreateSchema>;
 export type LeadCreateInput = z.infer<typeof leadCreateSchema>;
 export type VendorCreateInput = z.infer<typeof vendorCreateSchema>;

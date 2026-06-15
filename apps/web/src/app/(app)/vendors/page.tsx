@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import { apiGet } from "@/lib/client";
 
 interface Vendor {
@@ -41,7 +42,9 @@ export default function VendorsPage() {
             <tbody>
               {data?.items.map((v) => (
                 <tr key={v.id} className="border-t border-border/40">
-                  <td className="py-2 font-semibold">{v.name}</td>
+                  <td className="py-2 font-semibold">
+                    <Link href={`/vendors/${v.id}`} className="text-accent hover:underline">{v.name}</Link>
+                  </td>
                   <td>{v.vendorType}</td>
                   <td>{v.city ?? "—"}</td>
                   <td>{"⭐".repeat(Math.round(v.rating))}</td>

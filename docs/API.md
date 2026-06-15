@@ -58,10 +58,36 @@ returned `uploadUrl` (S3, SSE-AES256) → persist `publicUrl` against the record
 |---|---|---|
 | POST | `/api/copilot` `{ question }` | `copilot:use` |
 
+## Events — sub-resources
+| Method | Path | Permission |
+|---|---|---|
+| GET/POST/PATCH | `/api/events/:id/checklist` | `event:read` / `event:update` |
+| GET/POST | `/api/events/:id/tasks` | `event:read` / `task:create` |
+| PUT/DELETE | `/api/tasks/:id` | `task:update` / `task:delete` |
+| GET/POST/DELETE | `/api/events/:id/team` | `event:read` / `event:update` |
+| GET/POST | `/api/events/:id/documents` | `event:read` / `event:update` |
+| GET | `/api/users` | `event:read` — org users for assignment |
+
+## Vendors — scorecards
+| Method | Path | Permission |
+|---|---|---|
+| GET | `/api/vendors/:id` | `vendor:read` — detail + scorecard + spend history |
+| POST | `/api/vendors/:id/evaluations` | `vendor:evaluate` — recomputes rating + SLA |
+
 ## Reports
 | Method | Path | Permission |
 |---|---|---|
-| GET | `/api/reports/export/:format?type=` | `report:read` — `csv` inline, `pdf`/`excel` queued |
+| GET | `/api/reports/export/:format?type=` | `report:read` — `csv`/`excel`/`pdf` rendered inline |
+| GET/POST | `/api/reports/schedules` | `report:read` / `report:create` — cron schedules (BullMQ) |
+| PUT/DELETE | `/api/reports/schedules/:id` | `report:create` |
+| GET/POST | `/api/reports/runs` | `report:read` — run history; POST renders now (→ S3) |
+
+## Zoho — OAuth & sync
+| Method | Path | Auth |
+|---|---|---|
+| GET | `/api/zoho/oauth/authorize` | session — redirects to Zoho consent |
+| GET | `/api/zoho/oauth/callback` | Zoho redirect — exchanges code, stores tokens |
+| GET | `/api/zoho/sync-log` | `event:read` — connection status + sync log |
 
 ## Integration / Ops
 | Method | Path | Auth |

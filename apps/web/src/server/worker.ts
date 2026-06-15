@@ -2,8 +2,9 @@ import { Worker, type ConnectionOptions } from "bullmq";
 import { redis } from "@/lib/redis";
 import { prisma } from "@/lib/prisma";
 import { syncLeadToZoho } from "./zoho";
-import { recomputeRoiForEvent } from "./roi-service";
+import { runReport } from "./report-run";
 import { ZOHO_QUEUE, REPORT_QUEUE } from "./queue";
+import type { ReportFormat, ReportType } from "@prisma/client";
 
 // Standalone worker process. Run with: tsx src/server/worker.ts
 // Handles Zoho sync (with built-in BullMQ retry/backoff) and report jobs.
@@ -25,10 +26,13 @@ const zohoWorker = new Worker(
 const reportWorker = new Worker(
   REPORT_QUEUE,
   async (job) => {
-    const { orgId } = job.data as { orgId: string };
-    // Recompute ROI for all of the org's events before producing a report.
-    const events = await prisma.event.findMany({ where: { orgId }, select: { id: true } });
-    for (const e of events) await recomputeRoiForEvent(e.id);
+    const { orgId, type, format, scheduleId } = job.data as {
+      orgId: string;
+      type: ReportType;
+      format: ReportFormat;
+      scheduleId?: string;
+    };
+    await runReport({ orgId, type, format, scheduleId });
   },
   { connection, concurrency: 2 },
 );
