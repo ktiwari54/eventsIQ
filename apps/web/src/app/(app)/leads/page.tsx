@@ -66,6 +66,7 @@ export default function LeadsPage() {
                 <th>Heat</th>
                 <th>AI Suggestion</th>
                 <th>Event</th>
+                <th>Badge</th>
               </tr>
             </thead>
             <tbody>
@@ -78,6 +79,9 @@ export default function LeadsPage() {
                   <td>{l.heat}</td>
                   <td className="text-accent">{l.aiSuggestion}</td>
                   <td>{l.event?.name ?? "—"}</td>
+                  <td>
+                    <a className="text-accent" href={`/api/leads/${l.id}/badge`} target="_blank" rel="noreferrer">🪪 PDF</a>
+                  </td>
                 </tr>
               ))}
             </tbody>

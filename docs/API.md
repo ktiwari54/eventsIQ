@@ -68,6 +68,15 @@ returned `uploadUrl` (S3, SSE-AES256) → persist `publicUrl` against the record
 | GET/POST | `/api/events/:id/documents` | `event:read` / `event:update` |
 | GET | `/api/users` | `event:read` — org users for assignment |
 
+## QR codes & badges
+| Method | Path | Permission |
+|---|---|---|
+| GET | `/api/events/:id/qr` | `event:read` — PNG QR to the event's lead-capture page |
+| GET | `/api/leads/:id/badge` | `lead:read` — printable PDF badge with vCard QR |
+
+Scanning the event QR opens `/leads/capture?event=:id`, so booth self-captures
+attach to the event automatically.
+
 ## Vendors — scorecards
 | Method | Path | Permission |
 |---|---|---|
