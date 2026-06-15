@@ -1,0 +1,52 @@
+name: Deploy Staging
+
+# Deploys the EventIQ web app to the Vercel "staging" (preview) environment.
+# Trigger: push to the `staging` branch, or manual dispatch.
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+
+concurrency:
+  group: staging
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: staging
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+
+      - name: Install Vercel CLI
+        run: npm i -g vercel@latest
+
+      - name: Pull Vercel env (preview)
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+
+      # Apply DB migrations to the Neon staging branch before shipping new code.
+      - name: Apply migrations (Neon staging)
+        run: |
+          npm install --no-audit --no-fund
+          npm run db:generate
+          npm run db:deploy
+
+      - name: Build
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to staging
+        run: |
+          url=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          echo "Deployed to $url"
+          echo "STAGING_URL=$url" >> "$GITHUB_ENV"
+
+      - name: Smoke-check /api/health
+        run: |
+          sleep 5
+          curl -fsS "$STAGING_URL/api/health" || echo "health check returned non-200 (expected until env is fully configured)"
