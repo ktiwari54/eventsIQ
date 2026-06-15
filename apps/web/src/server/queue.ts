@@ -29,6 +29,31 @@ export async function enqueueZohoSync(orgId: string, leadId: string): Promise<vo
   );
 }
 
-export async function enqueueReport(orgId: string, type: string, format: string): Promise<void> {
-  await reportQueue.add("generate", { orgId, type, format }, { attempts: 3 });
+export async function enqueueReport(
+  orgId: string,
+  type: string,
+  format: string,
+  scheduleId?: string,
+): Promise<void> {
+  await reportQueue.add("generate", { orgId, type, format, scheduleId }, { attempts: 3 });
+}
+
+/** Register a cron-driven repeatable job for a report schedule. */
+export async function scheduleRepeatingReport(opts: {
+  scheduleId: string;
+  orgId: string;
+  type: string;
+  format: string;
+  cron: string;
+}): Promise<void> {
+  await reportQueue.add(
+    "generate",
+    { orgId: opts.orgId, type: opts.type, format: opts.format, scheduleId: opts.scheduleId },
+    { repeat: { pattern: opts.cron }, jobId: `sched:${opts.scheduleId}` },
+  );
+}
+
+/** Remove a previously-registered repeatable report job. */
+export async function unscheduleRepeatingReport(scheduleId: string, cron: string): Promise<void> {
+  await reportQueue.removeRepeatable("generate", { pattern: cron }, `sched:${scheduleId}`);
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import { apiGet } from "@/lib/client";
 
 interface EventRow {
@@ -24,7 +25,7 @@ export default function EventsPage() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-lg font-bold">📅 Events {data ? `(${data.total})` : ""}</h1>
-        <button className="btn btn-primary">＋ New Event</button>
+        <Link href="/events/new" className="btn btn-primary">＋ New Event</Link>
       </div>
       <div className="card overflow-x-auto">
         {isLoading ? (
@@ -45,7 +46,9 @@ export default function EventsPage() {
             <tbody>
               {data?.items.map((e) => (
                 <tr key={e.id} className="border-t border-border/40">
-                  <td className="py-2 font-semibold">{e.name}</td>
+                  <td className="py-2 font-semibold">
+                    <Link href={`/events/${e.id}`} className="text-accent hover:underline">{e.name}</Link>
+                  </td>
                   <td>{e.type}</td>
                   <td>{e.city ?? "—"}</td>
                   <td><span className="pill bg-green/20 text-green">{e.status}</span></td>

@@ -2,6 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // pdfkit/exceljs read font/asset files via fs at runtime — keep them external
+  // so Next requires them from node_modules instead of bundling.
+  serverExternalPackages: ["pdfkit", "exceljs"],
   experimental: {
     serverActions: { bodySizeLimit: "5mb" },
   },

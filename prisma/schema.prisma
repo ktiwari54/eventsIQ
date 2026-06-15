@@ -109,6 +109,21 @@ enum SyncDirection {
   OUTBOUND
 }
 
+enum ReportType {
+  EVENT
+  LEAD
+  ROI
+  VENDOR
+  BUDGET
+  FINANCE
+}
+
+enum ReportFormat {
+  PDF
+  EXCEL
+  CSV
+}
+
 // ----------------------------------------------------------------------------
 // Tenancy & Identity
 // ----------------------------------------------------------------------------
@@ -425,6 +440,46 @@ model ZohoSyncLog {
 // ----------------------------------------------------------------------------
 // Audit
 // ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// Scheduled / generated reports
+// ----------------------------------------------------------------------------
+model ReportSchedule {
+  id         String       @id @default(cuid())
+  orgId      String
+  name       String
+  type       ReportType
+  format     ReportFormat @default(PDF)
+  cron       String // e.g. "0 8 * * 1" — Mondays 08:00
+  recipients String[]     @default([]) // email addresses
+  enabled    Boolean      @default(true)
+  lastRunAt  DateTime?
+  lastUrl    String? // S3 URL of the most recent render
+  createdBy  String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  runs ReportRun[]
+
+  @@index([orgId, enabled])
+}
+
+model ReportRun {
+  id         String       @id @default(cuid())
+  scheduleId String?
+  orgId      String
+  type       ReportType
+  format     ReportFormat
+  status     SyncStatus   @default(PENDING)
+  url        String?
+  rowCount   Int          @default(0)
+  error      String?
+  createdAt  DateTime     @default(now())
+
+  schedule ReportSchedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+
+  @@index([orgId])
+}
+
 model AuditLog {
   id        String   @id @default(cuid())
   orgId     String

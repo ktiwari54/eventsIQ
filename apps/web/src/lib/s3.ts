@@ -96,3 +96,21 @@ export function presignDownload(key: string): Promise<string> {
 export async function deleteObject(key: string): Promise<void> {
   await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
 }
+
+/** Server-side upload of an in-memory buffer (e.g. a generated report). */
+export async function putObject(opts: {
+  key: string;
+  body: Buffer;
+  contentType: string;
+}): Promise<string> {
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: BUCKET,
+      Key: opts.key,
+      Body: opts.body,
+      ContentType: opts.contentType,
+      ServerSideEncryption: "AES256",
+    }),
+  );
+  return `https://${BUCKET}.s3.${REGION}.amazonaws.com/${opts.key}`;
+}
