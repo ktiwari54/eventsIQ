@@ -6,6 +6,7 @@ import { assertCan, ForbiddenError, type Permission } from "./rbac";
 import { prisma } from "./prisma";
 import { rateLimit } from "./rate-limit";
 import { incCounter, observeHistogram } from "./metrics";
+import { logger } from "./logger";
 
 export interface AuthContext {
   userId: string;
@@ -131,6 +132,6 @@ export function toErrorResponse(err: unknown): NextResponse {
   if (err instanceof ForbiddenError) {
     return NextResponse.json({ error: err.message }, { status: 403 });
   }
-  console.error("[api] unhandled error", err);
+  logger.error("Unhandled API error", logger.errFields(err));
   return NextResponse.json({ error: "Internal server error" }, { status: 500 });
 }

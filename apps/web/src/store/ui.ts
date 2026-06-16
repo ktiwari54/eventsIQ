@@ -10,7 +10,8 @@ interface UiState {
 }
 
 export const useUi = create<UiState>((set) => ({
-  sidebarOpen: true,
+  // Mobile drawer state (desktop sidebar is always visible via CSS).
+  sidebarOpen: false,
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
   leadFilter: {},
   setLeadFilter: (f) => set((s) => ({ leadFilter: { ...s.leadFilter, ...f } })),

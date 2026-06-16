@@ -1,5 +1,5 @@
 import { handler } from "@/lib/api";
-import { prisma } from "@/lib/prisma";
+import { withTenant } from "@/lib/tenant";
 import { parseCsv } from "@/server/csv";
 import { scoreLead } from "@/server/scoring";
 import { notify } from "@/server/notifications";
@@ -72,7 +72,7 @@ export const POST = handler(
     });
 
     const result = data.length
-      ? await prisma.lead.createMany({ data, skipDuplicates: true })
+      ? await withTenant(ctx.orgId, (tx) => tx.lead.createMany({ data, skipDuplicates: true }))
       : { count: 0 };
 
     if (result.count > 0) {
