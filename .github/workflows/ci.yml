@@ -43,6 +43,17 @@ jobs:
       - name: Build
         run: npm run build
 
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - run: npm install --no-audit --no-fund
+      # Fail the build on known high/critical vulnerabilities.
+      - name: Security audit
+        run: npm audit --audit-level=high
+
   e2e:
     runs-on: ubuntu-latest
     needs: test
@@ -52,4 +63,5 @@ jobs:
         with: { node-version: "20" }
       - run: npm install --no-audit --no-fund
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e --workspace=apps/web || true
+      # e2e is now blocking — failures fail the pipeline.
+      - run: npm run test:e2e --workspace=apps/web
