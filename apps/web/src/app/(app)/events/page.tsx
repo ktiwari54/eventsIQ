@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "@/lib/client";
+import Link from "next/link";
 
 interface EventRow {
   id: string;
@@ -24,7 +25,7 @@ export default function EventsPage() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-lg font-bold">📅 Events {data ? `(${data.total})` : ""}</h1>
-        <button className="btn btn-primary">＋ New Event</button>
+        <Link href="/events/new" className="btn btn-primary">＋ New Event</Link>
       </div>
       <div className="card overflow-x-auto">
         {isLoading ? (
