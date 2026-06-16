@@ -4,6 +4,25 @@ Production-ready platform for **event ROI tracking, AI lead scoring, lead &
 vendor management, budgeting, AI analytics and Zoho CRM integration**. Designed
 to scale to **100,000+ leads** and **thousands of events**.
 
+## One-click deploy
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fktiwari54%2FeventsIQ&env=DATABASE_URL,REDIS_URL,NEXTAUTH_URL,NEXTAUTH_SECRET,CRON_SECRET&envDescription=Neon%20Postgres%20%2B%20Upstash%20Redis%20%2B%20auth%20%2B%20cron%20secret&envLink=https%3A%2F%2Fgithub.com%2Fktiwari54%2FeventsIQ%2Fblob%2Fmain%2Fdocs%2FDEPLOYMENT.md&project-name=eventiq&repository-name=eventiq)
+
+Clones the repo into your Vercel account and prompts for the five required
+secrets. Before deploying, create a [Neon](https://neon.tech) Postgres database
+and an [Upstash](https://upstash.com) Redis instance, then paste their
+connection strings as `DATABASE_URL` / `REDIS_URL`. Vercel runs the migrations on
+build; a per-minute cron drives scheduled reports. Full walkthrough (and optional
+integrations) in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+
+| Variable | Where it comes from |
+|---|---|
+| `DATABASE_URL` | Neon pooled connection string (`?sslmode=require`) |
+| `REDIS_URL` | Upstash `rediss://…` URL |
+| `NEXTAUTH_URL` | your `https://<project>.vercel.app` URL |
+| `NEXTAUTH_SECRET` | `openssl rand -base64 32` |
+| `CRON_SECRET` | any random string (guards `/api/cron/process`) |
+
 ## Tech Stack
 
 | Layer | Choice |
