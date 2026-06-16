@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { ZodError } from "zod";
 import type { Role } from "@prisma/client";
@@ -19,10 +19,10 @@ export interface AuthContext {
  */
 export function handler(
   permission: Permission | null,
-  fn: (req: NextRequest, ctx: AuthContext, params: Record<string, string>) => Promise<unknown>,
+  fn: (req: any, ctx: AuthContext, params: Record<string, string>) => Promise<unknown>,
   opts: { auditAction?: string } = {},
 ) {
-  return async (req: NextRequest, route: { params: Promise<Record<string, string>> }) => {
+  return async (req: any, route: { params: Promise<Record<string, string>> }) => {
     try {
       const limited = await rateLimit(req);
       if (!limited.ok) {

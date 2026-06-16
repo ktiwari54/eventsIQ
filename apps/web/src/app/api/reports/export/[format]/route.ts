@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
-import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { assertCan } from "@/lib/rbac";
 import type { Role } from "@prisma/client";
@@ -9,7 +8,7 @@ import type { Role } from "@prisma/client";
 // Streams CSV directly; PDF/Excel generation is delegated to the report worker
 // in production but CSV is produced inline for immediate download.
 export async function GET(
-  req: NextRequest,
+  req: any,
   route: { params: Promise<{ format: string }> },
 ) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
@@ -32,8 +31,6 @@ export async function GET(
     });
   }
 
-  // For pdf/excel return a JSON descriptor; the worker renders the binary and
-  // emails/stores it. This keeps the request path fast and serverless-friendly.
   return NextResponse.json({
     queued: true,
     format,
