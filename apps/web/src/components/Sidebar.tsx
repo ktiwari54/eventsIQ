@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useUi } from "@/store/ui";
 
 const NAV = [
   {
@@ -42,11 +43,21 @@ const NAV = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { sidebarOpen, toggleSidebar } = useUi();
   return (
-    <aside className="w-[210px] min-h-screen bg-card border-r border-border fixed top-0 left-0 overflow-y-auto">
-      <div className="px-4 py-4 text-[17px] font-extrabold text-accent border-b border-border">
-        ⚡ EVENT IQ
-      </div>
+    <>
+      {/* Mobile backdrop */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/50 z-30 md:hidden" onClick={toggleSidebar} aria-hidden />
+      )}
+      <aside
+        className={`w-[210px] min-h-screen bg-card border-r border-border fixed top-0 left-0 overflow-y-auto z-40 transition-transform md:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="px-4 py-4 text-[17px] font-extrabold text-accent border-b border-border">
+          ⚡ EVENT IQ
+        </div>
       {NAV.map((group) => (
         <div key={group.section}>
           <div className="px-4 pt-4 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-600">
@@ -58,6 +69,7 @@ export function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => sidebarOpen && toggleSidebar()}
                 className={`flex items-center gap-2 px-4 py-2.5 text-[13px] border-l-2 transition-colors ${
                   active
                     ? "text-accent border-accent bg-accent/10 font-semibold"
@@ -69,7 +81,8 @@ export function Sidebar() {
             );
           })}
         </div>
-      ))}
-    </aside>
+        ))}
+      </aside>
+    </>
   );
 }

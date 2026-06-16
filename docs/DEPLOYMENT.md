@@ -63,6 +63,15 @@ VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID, STAGING_DATABASE_URL
 The workflow pulls Vercel env, applies migrations, builds with `vercel build`,
 deploys `--prebuilt`, and smoke-checks `/api/health`.
 
+## Row-Level Security (multi-tenant isolation)
+Migrations enable Postgres RLS on tenant tables. Enforcement requires the app to
+connect as a **non-superuser** role (superusers bypass RLS). **Neon's default
+role is non-superuser, so RLS is enforced automatically** — no extra setup. The
+app sets `app.current_org` per request via `withTenant()`; when unset (worker,
+seed, migrations, org signup) the policy is permissive, so those flows are
+unaffected. Locally, a superuser `postgres` role bypasses RLS (fine for dev) —
+to exercise enforcement, connect as a non-superuser owner role.
+
 ## 6. Verify
 - `GET /api/health` → `{ status: "healthy" }` (db + redis reachable).
 - `GET /api/metrics` → Prometheus text (add `Authorization: Bearer $METRICS_TOKEN` if set).

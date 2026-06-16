@@ -1,8 +1,8 @@
 import { handler } from "@/lib/api";
-import { prisma } from "@/lib/prisma";
 import { leadCreateSchema } from "@/server/validation";
 import { scoreLead } from "@/server/scoring";
 import { enqueueZohoSync } from "@/server/queue";
+import { withTenant } from "@/lib/tenant";
 
 // GET /api/leads — list/search leads. Sales Executives only see their own.
 export const GET = handler("lead:read", async (req, ctx) => {
@@ -33,16 +33,21 @@ export const GET = handler("lead:read", async (req, ctx) => {
       : {}),
   };
 
-  const [items, total] = await Promise.all([
-    prisma.lead.findMany({
-      where,
-      include: { event: { select: { name: true } } },
-      orderBy: { score: "desc" },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    }),
-    prisma.lead.count({ where }),
-  ]);
+  // Run inside the tenant context so Postgres RLS enforces isolation in addition
+  // to the explicit orgId filter (defence in depth for this PII surface).
+  const { items, total } = await withTenant(ctx.orgId, async (tx) => {
+    const [items, total] = await Promise.all([
+      tx.lead.findMany({
+        where,
+        include: { event: { select: { name: true } } },
+        orderBy: { score: "desc" },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      tx.lead.count({ where }),
+    ]);
+    return { items, total };
+  });
 
   return { items, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
 });
@@ -63,7 +68,8 @@ export const POST = handler(
       region: body.city ?? body.country,
     });
 
-    const lead = await prisma.lead.create({
+    const lead = await withTenant(ctx.orgId, (tx) =>
+      tx.lead.create({
       data: {
         orgId: ctx.orgId,
         ownerId: ctx.userId,
@@ -85,7 +91,8 @@ export const POST = handler(
         scoreFactors: scoring.factors,
         aiSuggestion: scoring.suggestion,
       },
-    });
+      }),
+    );
 
     // Fire-and-forget Zoho sync via the queue (won't block the response).
     await enqueueZohoSync(ctx.orgId, lead.id).catch(() => {});
