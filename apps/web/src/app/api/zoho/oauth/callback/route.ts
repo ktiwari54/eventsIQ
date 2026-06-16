@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { encryptSecret } from "@/lib/crypto";
 
 // GET /api/zoho/oauth/callback — exchange the authorization code for tokens and
 // persist them (per org) in ZohoConfig. Then redirect back to the Zoho page.
@@ -44,27 +45,19 @@ export async function GET(req: NextRequest) {
       return redirectBack(req, `error=${encodeURIComponent(data.error ?? "token_exchange_failed")}`);
     }
 
+    // Encrypt credentials at rest (AES-256-GCM when ENCRYPTION_KEY is set).
+    const enc = {
+      clientSecret: encryptSecret(clientSecret),
+      refreshToken: data.refresh_token ? encryptSecret(data.refresh_token) : undefined,
+      accessToken: encryptSecret(data.access_token),
+      apiDomain: data.api_domain ?? "https://www.zohoapis.com",
+      expiresAt: new Date(Date.now() + (data.expires_in ?? 3600) * 1000),
+      connected: true,
+    };
     await prisma.zohoConfig.upsert({
       where: { orgId },
-      create: {
-        orgId,
-        clientId,
-        clientSecret,
-        refreshToken: data.refresh_token,
-        accessToken: data.access_token,
-        apiDomain: data.api_domain ?? "https://www.zohoapis.com",
-        expiresAt: new Date(Date.now() + (data.expires_in ?? 3600) * 1000),
-        connected: true,
-      },
-      update: {
-        clientId,
-        clientSecret,
-        refreshToken: data.refresh_token,
-        accessToken: data.access_token,
-        apiDomain: data.api_domain ?? "https://www.zohoapis.com",
-        expiresAt: new Date(Date.now() + (data.expires_in ?? 3600) * 1000),
-        connected: true,
-      },
+      create: { orgId, clientId, ...enc },
+      update: { clientId, ...enc },
     });
 
     return redirectBack(req, "connected=1");

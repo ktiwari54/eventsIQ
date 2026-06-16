@@ -37,6 +37,12 @@ export function handler(
         return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
       }
 
+      // CSRF: cookie-authenticated mutations must originate from a trusted origin.
+      if (!isSafeMethod(req.method) && !verifyOrigin(req)) {
+        record(403);
+        return NextResponse.json({ error: "Cross-origin request blocked" }, { status: 403 });
+      }
+
       const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
       if (!token?.uid) {
         record(401);
@@ -77,6 +83,42 @@ export function handler(
       return res;
     }
   };
+}
+
+function isSafeMethod(method: string): boolean {
+  return method === "GET" || method === "HEAD" || method === "OPTIONS";
+}
+
+/**
+ * Same-origin check for CSRF protection. The Origin header (sent by browsers on
+ * state-changing requests) must match the request host or a configured allowed
+ * origin. Requests with no Origin/Referer (e.g. server-to-server with a bearer)
+ * are allowed since they aren't cookie-driven CSRF vectors.
+ */
+export function verifyOrigin(req: NextRequest): boolean {
+  const origin = req.headers.get("origin") ?? req.headers.get("referer");
+  if (!origin) return true; // non-browser caller; not a CSRF vector
+
+  let originHost: string;
+  try {
+    originHost = new URL(origin).host;
+  } catch {
+    return false;
+  }
+
+  const allowed = new Set<string>();
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+  if (host) allowed.add(host);
+  for (const env of [process.env.NEXTAUTH_URL, process.env.APP_URL]) {
+    if (env) {
+      try {
+        allowed.add(new URL(env).host);
+      } catch {
+        /* ignore malformed env */
+      }
+    }
+  }
+  return allowed.has(originHost);
 }
 
 export function toErrorResponse(err: unknown): NextResponse {

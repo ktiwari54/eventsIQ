@@ -1,9 +1,16 @@
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { authOptions } from "@/lib/auth";
 import { Sidebar } from "@/components/Sidebar";
 import { NotificationBell } from "@/components/NotificationBell";
 
-// Authenticated app shell. In production, wrap with a server-side session
-// guard (getServerSession) and redirect unauthenticated users to /login.
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+// Authenticated app shell. Server-side session guard: unauthenticated users are
+// redirected to /login before any protected page renders (defence in depth
+// alongside middleware + per-API RBAC).
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) redirect("/login");
+
   return (
     <div className="flex min-h-screen">
       <Sidebar />

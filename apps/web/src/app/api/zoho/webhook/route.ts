@@ -13,17 +13,19 @@ export async function POST(req: NextRequest) {
   const signature = req.headers.get("x-zoho-signature") ?? "";
   const secret = process.env.ZOHO_WEBHOOK_SECRET ?? "";
 
-  if (secret) {
-    const expected = crypto.createHmac("sha256", secret).update(raw).digest("hex");
-    if (!crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature || expected))) {
-      // timingSafeEqual throws on length mismatch; guard above keeps it safe.
-    }
-    if (signature !== expected) {
-      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-    }
+  if (secret && !verifyHmac(secret, raw, signature)) {
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
   const body = JSON.parse(raw || "{}") as { event?: string; data?: Record<string, unknown> };
   await handleZohoWebhook(orgId, body.event ?? "Unknown", body.data ?? {});
   return NextResponse.json({ received: true });
+}
+
+/** Constant-time HMAC-SHA256 comparison (length-safe). */
+function verifyHmac(secret: string, raw: string, signature: string): boolean {
+  const expected = crypto.createHmac("sha256", secret).update(raw).digest("hex");
+  const a = Buffer.from(expected, "utf8");
+  const b = Buffer.from(signature, "utf8");
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
 }

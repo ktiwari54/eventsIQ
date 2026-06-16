@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { notify } from "./notifications";
+import { encryptSecret, decryptSecret } from "@/lib/crypto";
 import type { Lead } from "@prisma/client";
 
 // Zoho CRM v2 integration: OAuth2 token refresh + bidirectional Lead sync with
@@ -16,16 +17,18 @@ interface ZohoToken {
 /** Obtain a valid access token, refreshing via the stored refresh token. */
 export async function getZohoToken(orgId: string): Promise<ZohoToken> {
   const cfg = await prisma.zohoConfig.findUnique({ where: { orgId } });
-  if (!cfg?.refreshToken) throw new Error("Zoho not connected for this organization");
+  const refreshToken = decryptSecret(cfg?.refreshToken);
+  if (!cfg || !refreshToken) throw new Error("Zoho not connected for this organization");
 
-  if (cfg.accessToken && cfg.expiresAt && cfg.expiresAt.getTime() > Date.now() + 60_000) {
-    return { accessToken: cfg.accessToken, apiDomain: cfg.apiDomain };
+  const accessToken = decryptSecret(cfg.accessToken);
+  if (accessToken && cfg.expiresAt && cfg.expiresAt.getTime() > Date.now() + 60_000) {
+    return { accessToken, apiDomain: cfg.apiDomain };
   }
 
   const params = new URLSearchParams({
-    refresh_token: cfg.refreshToken,
+    refresh_token: refreshToken,
     client_id: cfg.clientId,
-    client_secret: cfg.clientSecret,
+    client_secret: decryptSecret(cfg.clientSecret) ?? cfg.clientSecret,
     grant_type: "refresh_token",
   });
   const res = await fetch(`${TOKEN_URL}?${params.toString()}`, { method: "POST" });
@@ -36,7 +39,7 @@ export async function getZohoToken(orgId: string): Promise<ZohoToken> {
   await prisma.zohoConfig.update({
     where: { orgId },
     data: {
-      accessToken: data.access_token,
+      accessToken: encryptSecret(data.access_token),
       apiDomain,
       expiresAt: new Date(Date.now() + data.expires_in * 1000),
       connected: true,
