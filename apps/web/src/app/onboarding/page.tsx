@@ -66,7 +66,7 @@ export default function OnboardingPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="text-accent text-xl font-extrabold mb-2">⚡ EVENT IQ</div>
-          <p className="text-muted text-sm">Let's get you set up in 2 minutes</p>
+          <p className="text-muted text-sm">Let&apos;s get you set up in 2 minutes</p>
         </div>
 
         {/* Step indicator */}
@@ -100,7 +100,7 @@ export default function OnboardingPage() {
                 Welcome{session?.user?.name ? `, ${session.user.name.split(" ")[0]}` : ""}!
               </h2>
               <p className="text-muted text-sm mb-8 max-w-sm mx-auto">
-                Your account and 14-day trial are ready. Let's connect your CRM and create
+                Your account and 14-day trial are ready. Let&apos;s connect your CRM and create
                 your first event campaign.
               </p>
               <button className="btn btn-primary px-8 py-2.5" onClick={() => setStep("crm")}>
@@ -149,7 +149,7 @@ export default function OnboardingPage() {
                     checked={skipCrm}
                     onChange={(e) => setSkipCrm(e.target.checked)}
                   />
-                  <span className="text-sm text-muted">Skip for now — I'll connect later</span>
+                  <span className="text-sm text-muted">Skip for now — I&apos;ll connect later</span>
                 </label>
               </div>
 
@@ -233,7 +233,7 @@ export default function OnboardingPage() {
           {step === "done" && (
             <div className="text-center py-4">
               <div className="text-5xl mb-4">🚀</div>
-              <h2 className="text-2xl font-extrabold mb-2">You're all set!</h2>
+              <h2 className="text-2xl font-extrabold mb-2">You&apos;re all set!</h2>
               <p className="text-muted text-sm mb-8 max-w-sm mx-auto">
                 Your workspace is ready. Head to the dashboard to capture leads, track ROI,
                 and manage your events.
