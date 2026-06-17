@@ -34,8 +34,8 @@ jobs:
           node-version: "20"
       - run: npm install --no-audit --no-fund
       - run: npm run db:generate
-      # No migration history yet — push the schema directly to the test DB.
-      - run: npx prisma db push --schema=prisma/schema.prisma --skip-generate
+      # Push schema directly to the test DB (skips migration history for CI speed).
+      - run: npx prisma db push --skip-generate
       - name: Lint
         run: npm run lint
       - name: Unit tests
