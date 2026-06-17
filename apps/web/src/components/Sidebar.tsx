@@ -92,7 +92,8 @@ export function Sidebar() {
           fixed top-0 left-0 h-screen bg-card border-r border-border flex flex-col z-50
           w-[240px] md:w-[210px]
           transition-transform duration-200 ease-in-out
-          ${open ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+          md:translate-x-0
+          ${open ? "translate-x-0" : "-translate-x-full"}
         `}
       >
         <div className="px-4 py-4 text-[17px] font-extrabold text-accent border-b border-border shrink-0 flex items-center justify-between">
