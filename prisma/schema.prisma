@@ -624,11 +624,15 @@ model SalesOrder {
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 
+  zohoId       String?
+  zohoSyncedAt DateTime?
+
   organization Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
   items        SalesOrderItem[]
   invoice      Invoice?
 
   @@index([orgId, status])
+  @@index([zohoId])
 }
 
 model SalesOrderItem {
@@ -674,11 +678,15 @@ model Invoice {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
+  zohoId       String?
+  zohoSyncedAt DateTime?
+
   organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
   salesOrder   SalesOrder?   @relation(fields: [salesOrderId], references: [id])
   items        InvoiceItem[]
 
   @@index([orgId, status])
+  @@index([zohoId])
 }
 
 model InvoiceItem {
