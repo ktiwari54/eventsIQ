@@ -4,13 +4,19 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 
-type Tab = "profile" | "organization" | "billing";
+type Tab = "profile" | "organization" | "users" | "billing";
 
 const PLANS = [
   { tier: "STARTER",    name: "Starter",    price: 49,  users: "5 users",      leads: "500 leads",    color: "border-border" },
   { tier: "PRO",        name: "Pro",        price: 149, users: "15 users",     leads: "5,000 leads",  color: "border-accent" },
   { tier: "ENTERPRISE", name: "Enterprise", price: 399, users: "Unlimited",    leads: "Unlimited",    color: "border-purple-500" },
 ] as const;
+
+const ROLE_LABELS: Record<string, string> = {
+  SUPER_ADMIN: "Super Admin",
+  MANAGER: "Manager",
+  SALES_EXECUTIVE: "Sales Executive",
+};
 
 type OrgData = {
   name: string;
@@ -31,6 +37,15 @@ type OrgData = {
       maxLeads: number;
     };
   };
+};
+
+type OrgUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+  createdAt: string;
 };
 
 function Toast({ msg, type }: { msg: string; type: "success" | "error" }) {
@@ -64,6 +79,14 @@ export default function SettingsPage() {
   const [orgSaving, setOrgSaving] = useState(false);
   const [planSaving, setPlanSaving] = useState(false);
 
+  // Users state
+  const [users, setUsers] = useState<OrgUser[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [showAddUser, setShowAddUser] = useState(false);
+  const [newUser, setNewUser] = useState({ name: "", email: "", role: "SALES_EXECUTIVE", password: "" });
+  const [addingUser, setAddingUser] = useState(false);
+  const [removingUserId, setRemovingUserId] = useState<string | null>(null);
+
   const isAdmin = session?.user?.role === "SUPER_ADMIN";
 
   function showToast(msg: string, type: "success" | "error") {
@@ -71,24 +94,30 @@ export default function SettingsPage() {
     setTimeout(() => setToast(null), 3500);
   }
 
-  // Seed profile from session
   useEffect(() => {
     if (session?.user) {
       setProfile({ name: session.user.name ?? "", email: session.user.email ?? "" });
     }
   }, [session]);
 
-  // Fetch org when on billing/org tab
   useEffect(() => {
     if (tab === "organization" || tab === "billing") {
       fetch("/api/settings/org")
         .then((r) => r.json())
-        .then((d: OrgData) => {
-          setOrg(d);
-          setOrgName(d.name);
-        });
+        .then((d: OrgData) => { setOrg(d); setOrgName(d.name); });
+    }
+    if (tab === "users") {
+      loadUsers();
     }
   }, [tab]);
+
+  function loadUsers() {
+    setUsersLoading(true);
+    fetch("/api/settings/users")
+      .then((r) => r.json())
+      .then((d: OrgUser[]) => setUsers(d))
+      .finally(() => setUsersLoading(false));
+  }
 
   async function saveProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -157,16 +186,50 @@ export default function SettingsPage() {
       const data = await res.json();
       if (!res.ok) { showToast(data.error ?? "Failed to change plan.", "error"); return; }
       showToast(`Switched to ${data.name} plan.`, "success");
-      // Refresh org data
       fetch("/api/settings/org").then((r) => r.json()).then((d: OrgData) => { setOrg(d); setOrgName(d.name); });
     } finally {
       setPlanSaving(false);
     }
   }
 
+  async function addUser(e: React.FormEvent) {
+    e.preventDefault();
+    setAddingUser(true);
+    try {
+      const res = await fetch("/api/settings/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newUser),
+      });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.error ?? "Failed to add user.", "error"); return; }
+      showToast(`${data.name} added successfully.`, "success");
+      setNewUser({ name: "", email: "", role: "SALES_EXECUTIVE", password: "" });
+      setShowAddUser(false);
+      loadUsers();
+    } finally {
+      setAddingUser(false);
+    }
+  }
+
+  async function removeUser(userId: string, userName: string) {
+    if (!confirm(`Remove ${userName} from your organization?`)) return;
+    setRemovingUserId(userId);
+    try {
+      const res = await fetch(`/api/settings/users/${userId}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.error ?? "Failed to remove user.", "error"); return; }
+      showToast(`${userName} removed.`, "success");
+      loadUsers();
+    } finally {
+      setRemovingUserId(null);
+    }
+  }
+
   const tabs: { id: Tab; label: string }[] = [
     { id: "profile", label: "Profile" },
     { id: "organization", label: "Organization" },
+    { id: "users", label: "Users" },
     { id: "billing", label: "Plan & Billing" },
   ];
 
@@ -175,7 +238,7 @@ export default function SettingsPage() {
       <h1 className="text-2xl font-extrabold text-white mb-6">Settings</h1>
 
       {/* Tab bar */}
-      <div className="flex gap-1 bg-card border border-border rounded-xl p-1 mb-6 w-fit">
+      <div className="flex gap-1 bg-card border border-border rounded-xl p-1 mb-6 w-fit flex-wrap">
         {tabs.map((t) => (
           <button
             key={t.id}
@@ -192,7 +255,6 @@ export default function SettingsPage() {
       {/* Profile tab */}
       {tab === "profile" && (
         <div className="space-y-6">
-          {/* Profile info */}
           <div className="card">
             <h2 className="font-bold text-white mb-4">Personal Information</h2>
             <form onSubmit={saveProfile} className="space-y-4">
@@ -220,14 +282,13 @@ export default function SettingsPage() {
                 <div className="text-xs text-muted">
                   Role:{" "}
                   <span className="text-accent font-semibold">
-                    {session?.user?.role?.replace(/_/g, " ")}
+                    {ROLE_LABELS[session?.user?.role ?? ""] ?? session?.user?.role}
                   </span>
                 </div>
               </div>
             </form>
           </div>
 
-          {/* Change password */}
           <div className="card">
             <h2 className="font-bold text-white mb-1">Change Password</h2>
             <p className="text-muted text-xs mb-4">Leave blank if you signed up via Google or Microsoft.</p>
@@ -304,6 +365,122 @@ export default function SettingsPage() {
         </div>
       )}
 
+      {/* Users tab */}
+      {tab === "users" && (
+        <div className="space-y-4">
+          <div className="card">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-bold text-white">Team Members</h2>
+              {isAdmin && (
+                <button
+                  onClick={() => setShowAddUser((v) => !v)}
+                  className="btn btn-primary text-sm"
+                >
+                  {showAddUser ? "Cancel" : "+ Add User"}
+                </button>
+              )}
+            </div>
+
+            {/* Add user form */}
+            {showAddUser && isAdmin && (
+              <form onSubmit={addUser} className="bg-bg/50 rounded-xl border border-border p-4 mb-4 space-y-3">
+                <h3 className="text-sm font-bold text-white mb-2">New Team Member</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Full Name">
+                    <input
+                      className="input"
+                      value={newUser.name}
+                      onChange={(e) => setNewUser((u) => ({ ...u, name: e.target.value }))}
+                      required
+                    />
+                  </Field>
+                  <Field label="Email">
+                    <input
+                      type="email"
+                      className="input"
+                      value={newUser.email}
+                      onChange={(e) => setNewUser((u) => ({ ...u, email: e.target.value }))}
+                      required
+                    />
+                  </Field>
+                  <Field label="Role">
+                    <select
+                      className="input"
+                      value={newUser.role}
+                      onChange={(e) => setNewUser((u) => ({ ...u, role: e.target.value }))}
+                    >
+                      <option value="SALES_EXECUTIVE">Sales Executive</option>
+                      <option value="MANAGER">Manager</option>
+                      <option value="SUPER_ADMIN">Super Admin</option>
+                    </select>
+                  </Field>
+                  <Field label="Temporary Password">
+                    <input
+                      type="password"
+                      className="input"
+                      placeholder="Min 8 characters"
+                      value={newUser.password}
+                      onChange={(e) => setNewUser((u) => ({ ...u, password: e.target.value }))}
+                      required
+                    />
+                  </Field>
+                </div>
+                <button type="submit" disabled={addingUser} className="btn btn-primary text-sm disabled:opacity-50">
+                  {addingUser ? "Adding…" : "Add User"}
+                </button>
+              </form>
+            )}
+
+            {/* User list */}
+            {usersLoading ? (
+              <p className="text-muted text-sm">Loading…</p>
+            ) : users.length === 0 ? (
+              <p className="text-muted text-sm">No users found.</p>
+            ) : (
+              <div className="space-y-2">
+                {users.map((u) => (
+                  <div key={u.id} className="flex items-center justify-between py-2.5 border-b border-border last:border-0">
+                    <div>
+                      <div className="text-sm font-semibold text-white flex items-center gap-2">
+                        {u.name}
+                        {u.id === session?.user?.id && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/20 text-accent font-bold">You</span>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted">{u.email}</div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-bg border border-border text-muted">
+                        {ROLE_LABELS[u.role] ?? u.role}
+                      </span>
+                      {isAdmin && u.id !== session?.user?.id && (
+                        <button
+                          onClick={() => removeUser(u.id, u.name)}
+                          disabled={removingUserId === u.id}
+                          className="text-xs text-danger hover:underline disabled:opacity-40"
+                        >
+                          {removingUserId === u.id ? "Removing…" : "Remove"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Plan limit note */}
+          {org?.subscription && (
+            <div className="text-xs text-muted text-center">
+              {org._count.users} / {org.subscription.plan.maxUsers >= 9999 ? "∞" : org.subscription.plan.maxUsers} users on {org.subscription.plan.name} plan ·{" "}
+              <button onClick={() => setTab("billing")} className="text-accent hover:underline">
+                Upgrade to add more
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Plan & Billing tab */}
       {tab === "billing" && (
         <div className="space-y-6">
@@ -335,7 +512,6 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                {/* Dates */}
                 <div className="grid grid-cols-2 gap-4 py-4 border-t border-border">
                   {org.subscription.trialEndsAt && org.subscription.status === "TRIALING" && (
                     <div>
@@ -365,23 +541,34 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                {/* Limits */}
                 <div className="grid grid-cols-3 gap-3 py-4 border-t border-border">
-                  <LimitItem label="Users" value={org.subscription.plan.maxUsers} />
-                  <LimitItem label="Events/mo" value={org.subscription.plan.maxEvents === 9999 ? "∞" : org.subscription.plan.maxEvents} />
-                  <LimitItem label="Leads/mo" value={org.subscription.plan.maxLeads >= 999999 ? "∞" : org.subscription.plan.maxLeads.toLocaleString()} />
+                  <LimitItem label="Users" value={org.subscription.plan.maxUsers >= 9999 ? "∞" : org.subscription.plan.maxUsers} />
+                  <LimitItem label="Events" value={org.subscription.plan.maxEvents === 9999 ? "∞" : org.subscription.plan.maxEvents} />
+                  <LimitItem label="Leads" value={org.subscription.plan.maxLeads >= 999999 ? "∞" : org.subscription.plan.maxLeads.toLocaleString()} />
+                </div>
+
+                <div className="pt-2 border-t border-border">
+                  <div className="text-xs text-muted mb-1 uppercase tracking-wide font-semibold">What&apos;s included</div>
+                  <ul className="text-xs text-muted space-y-1 mt-2">
+                    <li>✅ Lead capture &amp; AI scoring</li>
+                    <li>✅ Event &amp; budget management</li>
+                    <li>✅ ROI engine &amp; reports</li>
+                    {org.subscription.plan.tier !== "STARTER" ? (
+                      <li>✅ CRM sync (Zoho, Salesforce, Dynamics)</li>
+                    ) : (
+                      <li className="opacity-50">🔒 CRM sync — upgrade to Pro</li>
+                    )}
+                    {org.subscription.plan.tier === "ENTERPRISE" && (
+                      <li>✅ Unlimited users &amp; priority support</li>
+                    )}
+                  </ul>
                 </div>
 
                 {isAdmin && (
-                  <div className="pt-2 flex gap-3">
+                  <div className="pt-4 flex gap-3 border-t border-border mt-4">
                     <Link href="/pricing" className="btn btn-primary text-sm">
-                      Upgrade Plan
+                      View Pricing
                     </Link>
-                    {org.subscription.status === "ACTIVE" && (
-                      <button className="btn btn-ghost text-sm text-danger hover:text-danger border-danger/30">
-                        Cancel Subscription
-                      </button>
-                    )}
                   </div>
                 )}
               </div>
