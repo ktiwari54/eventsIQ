@@ -28,17 +28,34 @@ export async function POST(req: NextRequest) {
   const { tier, billingCycle } = parsed.data;
   const defaults = PLAN_DEFAULTS[tier];
 
+  // Only allow downgrades via self-serve. Upgrades require contacting sales.
+  const RANK: Record<string, number> = { STARTER: 0, PRO: 1, ENTERPRISE: 2 };
+  const existing_sub = await prisma.subscription.findUnique({
+    where: { orgId: token.orgId as string },
+    include: { plan: { select: { tier: true } } },
+  });
+  if (existing_sub) {
+    const currentRank = RANK[existing_sub.plan.tier] ?? 0;
+    const targetRank = RANK[tier] ?? 0;
+    if (targetRank > currentRank) {
+      return NextResponse.json(
+        { error: "Upgrades require contacting our sales team. Please email sales@eventsiq.com." },
+        { status: 403 }
+      );
+    }
+  }
+
   const planRecord = await prisma.plan.upsert({
     where: { tier },
     update: {},
     create: { tier, ...defaults, features: [] },
   });
 
-  const existing = await prisma.subscription.findUnique({
+  const existingSub = await prisma.subscription.findUnique({
     where: { orgId: token.orgId as string },
   });
 
-  if (existing) {
+  if (existingSub) {
     await prisma.subscription.update({
       where: { orgId: token.orgId as string },
       data: {
