@@ -4,10 +4,9 @@ import { getToken } from "next-auth/jwt";
 const SCOPES = [
   "ZohoCRM.modules.leads.all",
   "ZohoCRM.modules.contacts.all",
-  "ZohoCRM.modules.sales_orders.all",
-  "ZohoCRM.modules.invoices.all",
   "ZohoCRM.modules.deals.all",
-  "ZohoCRM.settings.modules.all",
+  "ZohoCRM.modules.Sales_Orders.all",
+  "ZohoCRM.modules.Invoices.all",
 ].join(",");
 
 // GET /api/zoho/auth-debug — shows the OAuth URL without redirecting, for troubleshooting
