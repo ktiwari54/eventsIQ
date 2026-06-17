@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
   const xHost = req.headers.get("x-forwarded-host");
   const xProto = req.headers.get("x-forwarded-proto") ?? "https";
   const derivedOrigin = xHost ? `${xProto}://${xHost}` : origin;
-  const callbackUrl = `${derivedOrigin}/api/zoho/callback`;
+  const callbackUrl = process.env.ZOHO_REDIRECT_URI ?? `${derivedOrigin}/api/zoho/callback`;
   const params = new URLSearchParams({
     response_type: "code",
     client_id: cfg.clientId,

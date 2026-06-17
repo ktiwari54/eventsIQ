@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${derivedOrigin}/zoho?error=not_configured`);
   }
 
-  const callbackUrl = `${derivedOrigin}/api/zoho/callback`;
+  const callbackUrl = process.env.ZOHO_REDIRECT_URI ?? `${derivedOrigin}/api/zoho/callback`;
   const params = new URLSearchParams({
     code,
     client_id: cfg.clientId,
