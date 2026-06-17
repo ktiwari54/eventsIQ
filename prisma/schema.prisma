@@ -179,6 +179,11 @@ model Organization {
   vendors      Vendor[]
   zohoConfig   ZohoConfig?
   subscription Subscription?
+  salesforceConfig SalesforceConfig?
+  dynamicsConfig   DynamicsConfig?
+  forms            Form[]
+  salesOrders      SalesOrder[]
+  invoices         Invoice[]
 }
 
 model User {
@@ -238,6 +243,7 @@ model Event {
   documents    Document[]
   team         EventTeamMember[]
   checklist    ChecklistItem[]
+  forms        Form[]
 
   @@index([orgId, status])
   @@index([startDate])
@@ -495,4 +501,195 @@ model AuditLog {
 
   @@index([orgId, timestamp])
   @@index([userId])
+}
+
+// ----------------------------------------------------------------------------
+// CRM Integrations — Salesforce + Microsoft Dynamics
+// ----------------------------------------------------------------------------
+model SalesforceConfig {
+  id           String    @id @default(cuid())
+  orgId        String    @unique
+  clientId     String
+  clientSecret String
+  instanceUrl  String?
+  accessToken  String?
+  refreshToken String?
+  expiresAt    DateTime?
+  connected    Boolean   @default(false)
+  updatedAt    DateTime  @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+}
+
+model DynamicsConfig {
+  id           String    @id @default(cuid())
+  orgId        String    @unique
+  tenantId     String
+  clientId     String
+  clientSecret String
+  resourceUrl  String?
+  accessToken  String?
+  refreshToken String?
+  expiresAt    DateTime?
+  connected    Boolean   @default(false)
+  updatedAt    DateTime  @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+}
+
+// ----------------------------------------------------------------------------
+// Forms (embeddable lead capture)
+// ----------------------------------------------------------------------------
+enum FormFieldType {
+  TEXT
+  EMAIL
+  PHONE
+  NUMBER
+  TEXTAREA
+  SELECT
+  CHECKBOX
+}
+
+model Form {
+  id          String   @id @default(cuid())
+  orgId       String
+  eventId     String?
+  name        String
+  slug        String   @unique
+  description String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organization Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  event        Event?           @relation(fields: [eventId], references: [id])
+  fields       FormField[]
+  submissions  FormSubmission[]
+
+  @@index([orgId])
+}
+
+model FormField {
+  id          String        @id @default(cuid())
+  formId      String
+  label       String
+  fieldType   FormFieldType @default(TEXT)
+  placeholder String?
+  required    Boolean       @default(false)
+  options     Json?
+  order       Int           @default(0)
+
+  form Form @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@index([formId])
+}
+
+model FormSubmission {
+  id        String   @id @default(cuid())
+  formId    String
+  data      Json
+  leadId    String?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  form Form @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@index([formId])
+}
+
+// ----------------------------------------------------------------------------
+// Sales Orders
+// ----------------------------------------------------------------------------
+enum SalesOrderStatus {
+  DRAFT
+  CONFIRMED
+  PROCESSING
+  DELIVERED
+  CANCELLED
+}
+
+model SalesOrder {
+  id          String           @id @default(cuid())
+  orgId       String
+  leadId      String?
+  eventId     String?
+  orderNumber String           @unique
+  status      SalesOrderStatus @default(DRAFT)
+  currency    String           @default("USD")
+  subtotal    Decimal          @default(0) @db.Decimal(14, 2)
+  tax         Decimal          @default(0) @db.Decimal(14, 2)
+  discount    Decimal          @default(0) @db.Decimal(14, 2)
+  total       Decimal          @default(0) @db.Decimal(14, 2)
+  notes       String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  organization Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  items        SalesOrderItem[]
+  invoice      Invoice?
+
+  @@index([orgId, status])
+}
+
+model SalesOrderItem {
+  id          String  @id @default(cuid())
+  orderId     String
+  description String
+  quantity    Int     @default(1)
+  unitPrice   Decimal @db.Decimal(14, 2)
+  total       Decimal @db.Decimal(14, 2)
+
+  order SalesOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+// ----------------------------------------------------------------------------
+// Invoices
+// ----------------------------------------------------------------------------
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  orgId         String
+  salesOrderId  String?       @unique
+  invoiceNumber String        @unique
+  status        InvoiceStatus @default(DRAFT)
+  clientName    String
+  clientEmail   String?
+  currency      String        @default("USD")
+  subtotal      Decimal       @default(0) @db.Decimal(14, 2)
+  tax           Decimal       @default(0) @db.Decimal(14, 2)
+  discount      Decimal       @default(0) @db.Decimal(14, 2)
+  total         Decimal       @default(0) @db.Decimal(14, 2)
+  dueDate       DateTime?
+  paidAt        DateTime?
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  salesOrder   SalesOrder?   @relation(fields: [salesOrderId], references: [id])
+  items        InvoiceItem[]
+
+  @@index([orgId, status])
+}
+
+model InvoiceItem {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  description String
+  quantity    Int     @default(1)
+  unitPrice   Decimal @db.Decimal(14, 2)
+  total       Decimal @db.Decimal(14, 2)
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
 }

@@ -20,6 +20,14 @@ const NAV = [
     ],
   },
   {
+    section: "Revenue",
+    items: [
+      { href: "/forms", label: "📋 Forms" },
+      { href: "/sales-orders", label: "🛒 Sales Orders" },
+      { href: "/invoices", label: "📄 Invoices" },
+    ],
+  },
+  {
     section: "Intelligence",
     items: [
       { href: "/scoring", label: "🎯 AI Scoring" },
@@ -30,6 +38,7 @@ const NAV = [
   {
     section: "Integration",
     items: [
+      { href: "/crm", label: "🌐 CRM Hub" },
       { href: "/zoho", label: "🔗 Zoho CRM" },
       { href: "/reports", label: "📄 Reports" },
     ],

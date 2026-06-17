@@ -1,0 +1,51 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
+import { prisma } from "@/lib/prisma";
+import { z } from "zod";
+
+const schema = z.object({
+  tenantId: z.string().min(1),
+  clientId: z.string().min(1),
+  clientSecret: z.string().min(1),
+  resourceUrl: z.string().url().optional().or(z.literal("")),
+});
+
+export async function POST(req: NextRequest) {
+  const token = await getToken({ req });
+  if (!token?.orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  let body: unknown;
+  try { body = await req.json(); } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
+
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) return NextResponse.json({ error: "Validation failed" }, { status: 422 });
+
+  const { tenantId, clientId, clientSecret, resourceUrl } = parsed.data;
+
+  await prisma.dynamicsConfig.upsert({
+    where: { orgId: token.orgId as string },
+    update: { tenantId, clientId, clientSecret, resourceUrl: resourceUrl || null, connected: false },
+    create: {
+      orgId: token.orgId as string,
+      tenantId,
+      clientId,
+      clientSecret,
+      resourceUrl: resourceUrl || null,
+      connected: false,
+    },
+  });
+
+  return NextResponse.json({ ok: true });
+}
+
+export async function GET(req: NextRequest) {
+  const token = await getToken({ req });
+  if (!token?.orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const config = await prisma.dynamicsConfig.findUnique({
+    where: { orgId: token.orgId as string },
+    select: { tenantId: true, clientId: true, resourceUrl: true, connected: true },
+  });
+
+  return NextResponse.json(config ?? { connected: false });
+}
