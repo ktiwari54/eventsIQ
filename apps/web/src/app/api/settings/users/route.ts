@@ -7,7 +7,7 @@ import bcrypt from "bcryptjs";
 const inviteSchema = z.object({
   name: z.string().min(2).max(100),
   email: z.string().email(),
-  role: z.enum(["SUPER_ADMIN", "MANAGER", "SALES_EXECUTIVE"]).default("SALES_EXECUTIVE"),
+  role: z.enum(["SUPER_ADMIN", "FINANCE_MANAGER", "EVENT_MANAGER", "SALES_MANAGER", "SALES_EXECUTIVE", "VENDOR", "MANAGEMENT"]).default("SALES_EXECUTIVE"),
   password: z.string().min(8).max(128),
 });
 
