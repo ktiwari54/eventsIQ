@@ -6,6 +6,12 @@ import Link from "next/link";
 
 type Tab = "profile" | "organization" | "billing";
 
+const PLANS = [
+  { tier: "STARTER",    name: "Starter",    price: 49,  users: "5 users",      leads: "500 leads",    color: "border-border" },
+  { tier: "PRO",        name: "Pro",        price: 149, users: "15 users",     leads: "5,000 leads",  color: "border-accent" },
+  { tier: "ENTERPRISE", name: "Enterprise", price: 399, users: "Unlimited",    leads: "Unlimited",    color: "border-purple-500" },
+] as const;
+
 type OrgData = {
   name: string;
   slug: string;
@@ -56,6 +62,7 @@ export default function SettingsPage() {
   const [org, setOrg] = useState<OrgData | null>(null);
   const [orgName, setOrgName] = useState("");
   const [orgSaving, setOrgSaving] = useState(false);
+  const [planSaving, setPlanSaving] = useState(false);
 
   const isAdmin = session?.user?.role === "SUPER_ADMIN";
 
@@ -136,6 +143,24 @@ export default function SettingsPage() {
       showToast("Organization name updated.", "success");
     } finally {
       setOrgSaving(false);
+    }
+  }
+
+  async function changePlan(tier: "STARTER" | "PRO" | "ENTERPRISE") {
+    setPlanSaving(true);
+    try {
+      const res = await fetch("/api/admin/set-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tier }),
+      });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.error ?? "Failed to change plan.", "error"); return; }
+      showToast(`Switched to ${data.name} plan.`, "success");
+      // Refresh org data
+      fetch("/api/settings/org").then((r) => r.json()).then((d: OrgData) => { setOrg(d); setOrgName(d.name); });
+    } finally {
+      setPlanSaving(false);
     }
   }
 
@@ -361,15 +386,39 @@ export default function SettingsPage() {
                 )}
               </div>
 
-              {/* Plan comparison hint */}
-              <div className="card border-dashed">
-                <p className="text-sm text-muted">
-                  Need more leads, events, or users?{" "}
-                  <Link href="/pricing" className="text-accent hover:underline">
-                    View all plans →
-                  </Link>
-                </p>
-              </div>
+              {/* Plan switcher — admin only */}
+              {isAdmin && (
+                <div className="card">
+                  <h2 className="font-bold text-white mb-1">Change Plan</h2>
+                  <p className="text-muted text-xs mb-4">Switch your organization to a different plan immediately.</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {PLANS.map((p) => {
+                      const current = org.subscription?.plan.tier === p.tier;
+                      return (
+                        <div key={p.tier} className={`rounded-xl border p-4 flex flex-col gap-2 ${current ? p.color + " bg-accent/5" : "border-border"}`}>
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-white text-sm">{p.name}</span>
+                            {current && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-accent/20 text-accent">Current</span>}
+                          </div>
+                          <div className="text-xl font-extrabold text-white">${p.price}<span className="text-xs text-muted font-normal">/mo</span></div>
+                          <div className="text-xs text-muted space-y-0.5">
+                            <div>👥 {p.users}</div>
+                            <div>📊 {p.leads}</div>
+                            <div>🔗 {p.tier === "STARTER" ? "No CRM sync" : "CRM sync"}</div>
+                          </div>
+                          <button
+                            onClick={() => changePlan(p.tier)}
+                            disabled={current || planSaving}
+                            className={`btn text-xs mt-auto disabled:opacity-40 ${current ? "btn-ghost" : "btn-primary"}`}
+                          >
+                            {current ? "Active" : planSaving ? "Switching…" : `Switch to ${p.name}`}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <div className="card text-center py-10">
