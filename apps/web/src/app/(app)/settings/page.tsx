@@ -7,10 +7,12 @@ import Link from "next/link";
 type Tab = "profile" | "organization" | "users" | "billing";
 
 const PLANS = [
-  { tier: "STARTER",    name: "Starter",    price: 49,  users: "5 users",      leads: "500 leads",    color: "border-border" },
-  { tier: "PRO",        name: "Pro",        price: 149, users: "15 users",     leads: "5,000 leads",  color: "border-accent" },
-  { tier: "ENTERPRISE", name: "Enterprise", price: 399, users: "Unlimited",    leads: "Unlimited",    color: "border-purple-500" },
+  { tier: "STARTER",    name: "Starter",    price: 49,  users: "5 users",      leads: "500 leads",    color: "border-border",       rank: 0 },
+  { tier: "PRO",        name: "Pro",        price: 149, users: "15 users",     leads: "5,000 leads",  color: "border-accent",       rank: 1 },
+  { tier: "ENTERPRISE", name: "Enterprise", price: 399, users: "Unlimited",    leads: "Unlimited",    color: "border-purple-500",   rank: 2 },
 ] as const;
+
+const TIER_RANK: Record<string, number> = { STARTER: 0, PRO: 1, ENTERPRISE: 2 };
 
 const ROLE_LABELS: Record<string, string> = {
   SUPER_ADMIN: "Super Admin",
@@ -585,15 +587,65 @@ export default function SettingsPage() {
               {isAdmin && (
                 <div className="card">
                   <h2 className="font-bold text-white mb-1">Change Plan</h2>
-                  <p className="text-muted text-xs mb-4">Switch your organization to a different plan immediately.</p>
+                  <p className="text-muted text-xs mb-4">
+                    Upgrades require contacting our team. Downgrades take effect immediately.
+                  </p>
                   <div className="grid grid-cols-3 gap-3">
                     {PLANS.map((p) => {
-                      const current = org.subscription?.plan.tier === p.tier;
+                      const currentTier = org.subscription?.plan.tier ?? "STARTER";
+                      const current = currentTier === p.tier;
+                      const currentRank = TIER_RANK[currentTier] ?? 0;
+                      const isUpgrade = p.rank > currentRank;
+                      const isDowngrade = p.rank < currentRank;
+
+                      let action: React.ReactNode;
+                      if (current) {
+                        action = (
+                          <button disabled className="btn btn-ghost text-xs mt-auto opacity-40 cursor-not-allowed">
+                            Current Plan
+                          </button>
+                        );
+                      } else if (p.tier === "ENTERPRISE") {
+                        action = (
+                          <a
+                            href="mailto:sales@eventsiq.com?subject=Enterprise Plan Enquiry"
+                            className="btn text-xs mt-auto text-center"
+                            style={{ background: "rgba(168,85,247,0.15)", color: "#a855f7", border: "1px solid rgba(168,85,247,0.3)" }}
+                          >
+                            Contact Sales
+                          </a>
+                        );
+                      } else if (isUpgrade) {
+                        action = (
+                          <a
+                            href="mailto:sales@eventsiq.com?subject=Upgrade to Pro Plan"
+                            className="btn btn-primary text-xs mt-auto text-center"
+                          >
+                            Upgrade — Contact Us
+                          </a>
+                        );
+                      } else if (isDowngrade) {
+                        action = (
+                          <button
+                            onClick={() => {
+                              if (confirm(`Downgrade to ${p.name}? You will lose access to features on your current plan.`)) {
+                                changePlan(p.tier as "STARTER" | "PRO" | "ENTERPRISE");
+                              }
+                            }}
+                            disabled={planSaving}
+                            className="btn btn-ghost text-xs mt-auto border-danger/30 text-danger hover:text-danger disabled:opacity-40"
+                          >
+                            {planSaving ? "Switching…" : `Downgrade to ${p.name}`}
+                          </button>
+                        );
+                      }
+
                       return (
                         <div key={p.tier} className={`rounded-xl border p-4 flex flex-col gap-2 ${current ? p.color + " bg-accent/5" : "border-border"}`}>
                           <div className="flex items-center justify-between">
                             <span className="font-bold text-white text-sm">{p.name}</span>
                             {current && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-accent/20 text-accent">Current</span>}
+                            {isUpgrade && !current && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-green/10 text-green">Upgrade</span>}
                           </div>
                           <div className="text-xl font-extrabold text-white">${p.price}<span className="text-xs text-muted font-normal">/mo</span></div>
                           <div className="text-xs text-muted space-y-0.5">
@@ -601,13 +653,7 @@ export default function SettingsPage() {
                             <div>📊 {p.leads}</div>
                             <div>🔗 {p.tier === "STARTER" ? "No CRM sync" : "CRM sync"}</div>
                           </div>
-                          <button
-                            onClick={() => changePlan(p.tier)}
-                            disabled={current || planSaving}
-                            className={`btn text-xs mt-auto disabled:opacity-40 ${current ? "btn-ghost" : "btn-primary"}`}
-                          >
-                            {current ? "Active" : planSaving ? "Switching…" : `Switch to ${p.name}`}
-                          </button>
+                          {action}
                         </div>
                       );
                     })}
