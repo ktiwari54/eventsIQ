@@ -34,6 +34,12 @@ const NAV = [
       { href: "/reports", label: "📄 Reports" },
     ],
   },
+  {
+    section: "Account",
+    items: [
+      { href: "/settings", label: "⚙️ Settings" },
+    ],
+  },
 ];
 
 export function Sidebar() {

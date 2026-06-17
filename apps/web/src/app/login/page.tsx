@@ -41,6 +41,13 @@ export default function LoginPage() {
         >
           Sign in
         </button>
+
+        <p className="text-center text-xs text-muted mt-4">
+          Don&apos;t have an account?{" "}
+          <a href="/signup" className="text-accent hover:underline">
+            Start free trial
+          </a>
+        </p>
       </div>
     </div>
   );
