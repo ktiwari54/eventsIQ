@@ -32,7 +32,7 @@ function Toast({ msg, type, onClose }: { msg: string; type: "success" | "error";
 function ZohoPageInner() {
   const params = useSearchParams();
   const [cfg, setCfg] = useState<Config>({ connected: false });
-  const [form, setForm] = useState({ clientId: "", clientSecret: "", dataCenter: "in" });
+  const [form, setForm] = useState({ clientId: "", clientSecret: "", dataCenter: "com" });
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState<Record<string, boolean>>({});
   const [results, setResults] = useState<Record<string, SyncResult>>({});
@@ -55,7 +55,7 @@ function ZohoPageInner() {
   useEffect(() => {
     fetch("/api/zoho/config").then((r) => r.json()).then((d: Config) => {
       setCfg(d);
-      if (d.clientId) setForm((f) => ({ ...f, clientId: d.clientId ?? "", dataCenter: d.dataCenter ?? "in" }));
+      if (d.clientId) setForm((f) => ({ ...f, clientId: d.clientId ?? "", dataCenter: d.dataCenter ?? "com" }));
     });
     if (params.get("connected") === "1") showToast("Zoho CRM connected successfully!", "success");
     if (params.get("error")) showToast(`Connection failed: ${params.get("error")}`, "error");
@@ -141,8 +141,8 @@ function ZohoPageInner() {
             <div>
               <label className="text-xs text-muted uppercase tracking-wide font-semibold mb-1 block">Data Center</label>
               <select className="input w-full" value={form.dataCenter} onChange={(e) => setForm((f) => ({ ...f, dataCenter: e.target.value }))}>
-                <option value="in">India (zoho.in)</option>
                 <option value="com">US (zoho.com)</option>
+                <option value="in">India (zoho.in)</option>
                 <option value="eu">Europe (zoho.eu)</option>
                 <option value="com.au">Australia (zoho.com.au)</option>
                 <option value="jp">Japan (zoho.jp)</option>
