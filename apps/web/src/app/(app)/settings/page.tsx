@@ -391,7 +391,7 @@ export default function SettingsPage() {
             {showAddUser && isAdmin && (
               <form onSubmit={addUser} className="bg-bg/50 rounded-xl border border-border p-4 mb-4 space-y-3">
                 <h3 className="text-sm font-bold text-white mb-2">New Team Member</h3>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Field label="Full Name">
                     <input
                       className="input"
@@ -522,7 +522,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 py-4 border-t border-border">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4 border-t border-border">
                   {org.subscription.trialEndsAt && org.subscription.status === "TRIALING" && (
                     <div>
                       <div className="text-xs text-muted uppercase tracking-wide mb-1">Trial Ends</div>
@@ -551,7 +551,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 py-4 border-t border-border">
+                <div className="grid grid-cols-3 gap-3 py-4 border-t border-border sm:grid-cols-3">
                   <LimitItem label="Users" value={org.subscription.plan.maxUsers >= 9999 ? "∞" : org.subscription.plan.maxUsers} />
                   <LimitItem label="Events" value={org.subscription.plan.maxEvents === 9999 ? "∞" : org.subscription.plan.maxEvents} />
                   <LimitItem label="Leads" value={org.subscription.plan.maxLeads >= 999999 ? "∞" : org.subscription.plan.maxLeads.toLocaleString()} />
@@ -590,7 +590,7 @@ export default function SettingsPage() {
                   <p className="text-muted text-xs mb-4">
                     Upgrades require contacting our team. Downgrades take effect immediately.
                   </p>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {PLANS.map((p) => {
                       const currentTier = org.subscription?.plan.tier ?? "STARTER";
                       const current = currentTier === p.tier;
