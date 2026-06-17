@@ -138,7 +138,56 @@ async function main() {
     ],
   });
 
+  // Production admin org with Pro subscription
+  const prodOrg = await prisma.organization.upsert({
+    where: { slug: "eventsiq-main" },
+    update: {},
+    create: { name: "EventsIQ", slug: "eventsiq-main" },
+  });
+
+  const prodHash = await bcrypt.hash("Admin@eventsIQ1", 12);
+  await prisma.user.upsert({
+    where: { email: "ktiwari54@gmail.com" },
+    update: {},
+    create: {
+      orgId: prodOrg.id,
+      name: "Admin",
+      email: "ktiwari54@gmail.com",
+      role: "SUPER_ADMIN",
+      status: "ACTIVE",
+      password: prodHash,
+    },
+  });
+
+  const proPlan = await prisma.plan.upsert({
+    where: { tier: "PRO" },
+    update: {},
+    create: {
+      name: "Pro",
+      tier: "PRO",
+      monthlyPrice: 149,
+      yearlyPrice: 119,
+      maxUsers: 15,
+      maxEvents: 9999,
+      maxLeads: 5000,
+      features: [],
+    },
+  });
+
+  await prisma.subscription.upsert({
+    where: { orgId: prodOrg.id },
+    update: { planId: proPlan.id, status: "ACTIVE", billingCycle: "MONTHLY", currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) },
+    create: {
+      orgId: prodOrg.id,
+      planId: proPlan.id,
+      status: "ACTIVE",
+      billingCycle: "MONTHLY",
+      currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+    },
+  });
+
   console.log("✅ Seed complete. Login: admin@eventiq.dev / Password123!");
+  console.log("✅ Admin account: ktiwari54@gmail.com / Admin@eventsIQ1 (Pro plan)");
 }
 
 main()
