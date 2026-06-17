@@ -35,7 +35,7 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm run db:generate
       # Push schema directly to the test DB (skips migration history for CI speed).
-      - run: npx prisma db push --skip-generate
+      - run: npx prisma db push --schema=prisma/schema.prisma --skip-generate
       - name: Lint
         run: npm run lint
       - name: Unit tests
