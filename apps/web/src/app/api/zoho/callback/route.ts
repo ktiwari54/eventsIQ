@@ -7,9 +7,12 @@ export async function GET(req: NextRequest) {
   const orgId = searchParams.get("state");
 
   const origin = new URL(req.url).origin;
+  const xHost = req.headers.get("x-forwarded-host");
+  const xProto = req.headers.get("x-forwarded-proto") ?? "https";
+  const derivedOrigin = xHost ? `${xProto}://${xHost}` : origin;
 
   if (!code || !orgId) {
-    return NextResponse.redirect(`${origin}/zoho?error=missing_params`);
+    return NextResponse.redirect(`${derivedOrigin}/zoho?error=missing_params`);
   }
 
   const cfg = await prisma.zohoConfig.findUnique({
@@ -17,10 +20,10 @@ export async function GET(req: NextRequest) {
     select: { clientId: true, clientSecret: true },
   });
   if (!cfg) {
-    return NextResponse.redirect(`${origin}/zoho?error=not_configured`);
+    return NextResponse.redirect(`${derivedOrigin}/zoho?error=not_configured`);
   }
 
-  const callbackUrl = `${origin}/api/zoho/callback`;
+  const callbackUrl = `${derivedOrigin}/api/zoho/callback`;
   const params = new URLSearchParams({
     code,
     client_id: cfg.clientId,
@@ -34,7 +37,7 @@ export async function GET(req: NextRequest) {
   });
 
   if (!res.ok) {
-    return NextResponse.redirect(`${origin}/zoho?error=token_failed`);
+    return NextResponse.redirect(`${derivedOrigin}/zoho?error=token_failed`);
   }
 
   const data = (await res.json()) as {
@@ -45,7 +48,7 @@ export async function GET(req: NextRequest) {
   };
 
   if (!data.refresh_token) {
-    return NextResponse.redirect(`${origin}/zoho?error=no_refresh_token`);
+    return NextResponse.redirect(`${derivedOrigin}/zoho?error=no_refresh_token`);
   }
 
   await prisma.zohoConfig.update({
@@ -59,5 +62,5 @@ export async function GET(req: NextRequest) {
     },
   });
 
-  return NextResponse.redirect(`${origin}/zoho?connected=1`);
+  return NextResponse.redirect(`${derivedOrigin}/zoho?connected=1`);
 }
