@@ -6,8 +6,10 @@ export async function GET(req: NextRequest) {
   const code = searchParams.get("code");
   const orgId = searchParams.get("state");
 
+  const origin = new URL(req.url).origin;
+
   if (!code || !orgId) {
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/zoho?error=missing_params`);
+    return NextResponse.redirect(`${origin}/zoho?error=missing_params`);
   }
 
   const cfg = await prisma.zohoConfig.findUnique({
@@ -15,10 +17,10 @@ export async function GET(req: NextRequest) {
     select: { clientId: true, clientSecret: true },
   });
   if (!cfg) {
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/zoho?error=not_configured`);
+    return NextResponse.redirect(`${origin}/zoho?error=not_configured`);
   }
 
-  const callbackUrl = `${process.env.NEXTAUTH_URL}/api/zoho/callback`;
+  const callbackUrl = `${origin}/api/zoho/callback`;
   const params = new URLSearchParams({
     code,
     client_id: cfg.clientId,
@@ -32,7 +34,7 @@ export async function GET(req: NextRequest) {
   });
 
   if (!res.ok) {
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/zoho?error=token_failed`);
+    return NextResponse.redirect(`${origin}/zoho?error=token_failed`);
   }
 
   const data = (await res.json()) as {
@@ -43,7 +45,7 @@ export async function GET(req: NextRequest) {
   };
 
   if (!data.refresh_token) {
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/zoho?error=no_refresh_token`);
+    return NextResponse.redirect(`${origin}/zoho?error=no_refresh_token`);
   }
 
   await prisma.zohoConfig.update({
@@ -57,5 +59,5 @@ export async function GET(req: NextRequest) {
     },
   });
 
-  return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/zoho?connected=1`);
+  return NextResponse.redirect(`${origin}/zoho?connected=1`);
 }

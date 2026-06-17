@@ -23,7 +23,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Save your Zoho Client ID and Secret first." }, { status: 400 });
   }
 
-  const callbackUrl = `${process.env.NEXTAUTH_URL}/api/zoho/callback`;
+  const origin = new URL(req.url).origin;
+  const callbackUrl = `${origin}/api/zoho/callback`;
   const params = new URLSearchParams({
     response_type: "code",
     client_id: cfg.clientId,
