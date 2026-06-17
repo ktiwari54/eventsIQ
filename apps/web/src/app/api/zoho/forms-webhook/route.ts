@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 // POST /api/zoho/forms-webhook?orgId=
@@ -75,7 +76,7 @@ export async function POST(req: NextRequest) {
       recordId: lead.id,
       direction: "INBOUND",
       status: "SUCCESS",
-      payload: fields,
+      payload: fields as Prisma.InputJsonValue,
     },
   });
 
