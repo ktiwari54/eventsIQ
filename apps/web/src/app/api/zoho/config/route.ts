@@ -55,5 +55,5 @@ export async function GET(req: NextRequest) {
     select: { clientId: true, connected: true, apiDomain: true },
   });
 
-  return NextResponse.json(config ?? { connected: false });
+  return NextResponse.json({ ...(config ?? { connected: false }), orgId: token.orgId });
 }

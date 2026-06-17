@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
-type Config = { clientId?: string; apiDomain?: string; connected: boolean };
+type Config = { clientId?: string; apiDomain?: string; connected: boolean; orgId?: string };
 type SyncResult = { synced: number; failed: number; total: number } | null;
 
 const MODULES = [
@@ -94,7 +94,7 @@ function ZohoPageInner() {
   }
 
   const webhookUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/api/zoho/webhook?orgId=YOUR_ORG_ID`
+    ? `${window.location.origin}/api/zoho/webhook?orgId=${cfg.orgId ?? "YOUR_ORG_ID"}`
     : "/api/zoho/webhook?orgId=YOUR_ORG_ID";
 
   return (
