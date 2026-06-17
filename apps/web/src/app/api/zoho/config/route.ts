@@ -6,6 +6,7 @@ import { z } from "zod";
 const schema = z.object({
   clientId: z.string().min(1),
   clientSecret: z.string().min(1),
+  dataCenter: z.enum(["com", "in", "eu", "com.au", "jp"]).default("com"),
 });
 
 export async function POST(req: NextRequest) {
@@ -30,15 +31,16 @@ export async function POST(req: NextRequest) {
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Validation failed" }, { status: 422 });
 
-  const { clientId, clientSecret } = parsed.data;
+  const { clientId, clientSecret, dataCenter } = parsed.data;
 
   await prisma.zohoConfig.upsert({
     where: { orgId: token.orgId as string },
-    update: { clientId, clientSecret, connected: false },
+    update: { clientId, clientSecret, dataCenter, connected: false },
     create: {
       orgId: token.orgId as string,
       clientId,
       clientSecret,
+      dataCenter,
       connected: false,
     },
   });
@@ -52,7 +54,7 @@ export async function GET(req: NextRequest) {
 
   const config = await prisma.zohoConfig.findUnique({
     where: { orgId: token.orgId as string },
-    select: { clientId: true, connected: true, apiDomain: true },
+    select: { clientId: true, connected: true, apiDomain: true, dataCenter: true },
   });
 
   return NextResponse.json({ ...(config ?? { connected: false }), orgId: token.orgId });

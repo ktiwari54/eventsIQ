@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
   const { prisma } = await import("@/lib/prisma");
   const cfg = await prisma.zohoConfig.findUnique({
     where: { orgId: token.orgId as string },
-    select: { clientId: true },
+    select: { clientId: true, dataCenter: true },
   });
   if (!cfg?.clientId) {
     return NextResponse.json({ error: "Save your Zoho Client ID and Secret first." }, { status: 400 });
@@ -39,11 +39,13 @@ export async function GET(req: NextRequest) {
     state: token.orgId as string,
   });
 
-  const fullUrl = `https://accounts.zoho.com/oauth/v2/auth?${params.toString()}`;
+  const dc = cfg.dataCenter ?? "com";
+  const fullUrl = `https://accounts.zoho.${dc}/oauth/v2/auth?${params.toString()}`;
 
   return NextResponse.json({
     redirectUri: callbackUrl,
     fullOAuthUrl: fullUrl,
+    dataCenter: dc,
     envVarSet: !!process.env.ZOHO_REDIRECT_URI,
     clientId: cfg.clientId,
   });
