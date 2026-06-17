@@ -37,8 +37,20 @@ function ZohoPageInner() {
   const [syncing, setSyncing] = useState<Record<string, boolean>>({});
   const [results, setResults] = useState<Record<string, SyncResult>>({});
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const showToast = useCallback((msg: string, type: "success" | "error") => setToast({ msg, type }), []);
+
+  const redirectUri = typeof window !== "undefined"
+    ? `${window.location.origin}/api/zoho/callback`
+    : "/api/zoho/callback";
+
+  function copyRedirectUri() {
+    navigator.clipboard.writeText(redirectUri).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
 
   useEffect(() => {
     fetch("/api/zoho/config").then((r) => r.json()).then((d: Config) => {
@@ -94,13 +106,36 @@ function ZohoPageInner() {
         </span>
       </div>
 
+      {/* Redirect URI box — must be set in Zoho before connecting */}
+      <div className="card mb-6 border-accent/40 bg-accent/5">
+        <div className="flex items-start gap-3">
+          <span className="text-2xl mt-0.5">⚙️</span>
+          <div className="flex-1 min-w-0">
+            <h2 className="font-bold text-white mb-1">Before you connect — add this Redirect URI in Zoho</h2>
+            <p className="text-muted text-xs mb-3">
+              Go to <strong className="text-white">api-console.zoho.com</strong> → your client → Edit → Authorized Redirect URIs → paste exactly:
+            </p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 min-w-0 text-accent text-xs bg-bg border border-accent/30 rounded-lg px-3 py-2 break-all font-mono">
+                {redirectUri}
+              </code>
+              <button
+                onClick={copyRedirectUri}
+                className="btn btn-primary text-xs shrink-0 px-3"
+              >
+                {copied ? "Copied ✓" : "Copy"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         {/* Credentials */}
         <div className="card">
           <h2 className="font-bold text-white mb-4">Step 1 — App credentials</h2>
           <p className="text-muted text-xs mb-4">
-            Create a Server-based OAuth app in the <span className="text-white">Zoho API Console</span> with redirect URI:<br />
-            <code className="text-accent text-xs">{typeof window !== "undefined" ? `${window.location.origin}/api/zoho/callback` : "/api/zoho/callback"}</code>
+            Create a <strong className="text-white">Server-based OAuth app</strong> in the Zoho API Console, paste the Redirect URI above, then enter your credentials here.
           </p>
           <form onSubmit={saveConfig} className="space-y-3">
             <div>
