@@ -24,7 +24,10 @@ export async function GET(req: NextRequest) {
   }
 
   const origin = new URL(req.url).origin;
-  const callbackUrl = `${origin}/api/zoho/callback`;
+  const xHost = req.headers.get("x-forwarded-host");
+  const xProto = req.headers.get("x-forwarded-proto") ?? "https";
+  const derivedOrigin = xHost ? `${xProto}://${xHost}` : origin;
+  const callbackUrl = `${derivedOrigin}/api/zoho/callback`;
   const params = new URLSearchParams({
     response_type: "code",
     client_id: cfg.clientId,
