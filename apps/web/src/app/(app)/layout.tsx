@@ -1,8 +1,18 @@
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { authOptions } from "@/lib/auth";
 import { Sidebar } from "@/components/Sidebar";
 
-// Authenticated app shell. In production, wrap with a server-side session
-// guard (getServerSession) and redirect unauthenticated users to /login.
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const session = await getServerSession(authOptions);
+
+  if (!session) redirect("/login");
+
+  // First-time SSO user who hasn't created an org yet
+  if (session.user.needsOnboarding || !session.user.orgId) {
+    redirect("/sso-setup");
+  }
+
   return (
     <div className="flex min-h-screen">
       <Sidebar />

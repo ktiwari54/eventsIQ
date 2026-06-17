@@ -40,8 +40,10 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
-      // On first login, attach role + orgId from the DB record.
+    async jwt({ token, user, account }) {
+      // On first sign-in (user object is present), resolve the DB record.
+      // For SSO providers, the user may not exist yet — flag needsOnboarding
+      // so the app can redirect them to the org-creation step.
       if (user?.email) {
         const dbUser = await prisma.user.findUnique({
           where: { email: user.email.toLowerCase() },
@@ -50,15 +52,24 @@ export const authOptions: NextAuthOptions = {
           token.uid = dbUser.id;
           token.role = dbUser.role;
           token.orgId = dbUser.orgId;
+          token.needsOnboarding = false;
+        } else if (account?.provider && account.provider !== "credentials") {
+          // First-time SSO user — store identity, flag for onboarding
+          token.needsOnboarding = true;
+          // Preserve name/email/image from the OAuth profile for the setup page
+          token.name = user.name ?? token.name;
+          token.email = user.email;
+          token.picture = (user as { image?: string }).image ?? token.picture;
         }
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.uid as string;
+        session.user.id = (token.uid as string) ?? "";
         session.user.role = token.role as Role;
-        session.user.orgId = token.orgId as string;
+        session.user.orgId = (token.orgId as string) ?? "";
+        session.user.needsOnboarding = token.needsOnboarding ?? false;
       }
       return session;
     },

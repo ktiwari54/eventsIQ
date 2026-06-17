@@ -8,8 +8,10 @@ declare module "next-auth" {
       id: string;
       name?: string | null;
       email?: string | null;
+      image?: string | null;
       role: Role;
       orgId: string;
+      needsOnboarding?: boolean;
     };
   }
 }
@@ -19,5 +21,6 @@ declare module "next-auth/jwt" {
     uid?: string;
     role?: Role;
     orgId?: string;
+    needsOnboarding?: boolean;
   }
 }
