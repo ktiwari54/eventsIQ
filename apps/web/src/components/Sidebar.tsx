@@ -54,10 +54,11 @@ const NAV = [
 export function Sidebar() {
   const pathname = usePathname();
   return (
-    <aside className="w-[210px] min-h-screen bg-card border-r border-border fixed top-0 left-0 overflow-y-auto">
-      <div className="px-4 py-4 text-[17px] font-extrabold text-accent border-b border-border">
+    <aside className="w-[210px] h-screen bg-card border-r border-border fixed top-0 left-0 flex flex-col">
+      <div className="px-4 py-4 text-[17px] font-extrabold text-accent border-b border-border shrink-0">
         ⚡ EVENT IQ
       </div>
+      <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border">
       {NAV.map((group) => (
         <div key={group.section}>
           <div className="px-4 pt-4 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-600">
@@ -81,6 +82,7 @@ export function Sidebar() {
           })}
         </div>
       ))}
+      </div>
     </aside>
   );
 }
