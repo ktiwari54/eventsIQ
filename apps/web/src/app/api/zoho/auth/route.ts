@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const SCOPES = [
-  "ZohoCRM.modules.leads.all",
-  "ZohoCRM.modules.contacts.all",
-  "ZohoCRM.modules.deals.all",
-  "ZohoCRM.modules.Sales_Orders.all",
-  "ZohoCRM.modules.Invoices.all",
-].join(",");
+const SCOPES = "ZohoCRM.modules.ALL.all";
 
 export async function GET(req: NextRequest) {
   const token = await getToken({ req });
