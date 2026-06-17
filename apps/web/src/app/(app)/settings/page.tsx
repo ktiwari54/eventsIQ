@@ -14,8 +14,12 @@ const PLANS = [
 
 const ROLE_LABELS: Record<string, string> = {
   SUPER_ADMIN: "Super Admin",
-  MANAGER: "Manager",
+  FINANCE_MANAGER: "Finance Manager",
+  EVENT_MANAGER: "Event Manager",
+  SALES_MANAGER: "Sales Manager",
   SALES_EXECUTIVE: "Sales Executive",
+  VENDOR: "Vendor",
+  MANAGEMENT: "Management",
 };
 
 type OrgData = {
@@ -83,7 +87,7 @@ export default function SettingsPage() {
   const [users, setUsers] = useState<OrgUser[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [showAddUser, setShowAddUser] = useState(false);
-  const [newUser, setNewUser] = useState({ name: "", email: "", role: "SALES_EXECUTIVE", password: "" });
+  const [newUser, setNewUser] = useState({ name: "", email: "", role: "SALES_EXECUTIVE" as string, password: "" });
   const [addingUser, setAddingUser] = useState(false);
   const [removingUserId, setRemovingUserId] = useState<string | null>(null);
 
@@ -410,7 +414,11 @@ export default function SettingsPage() {
                       onChange={(e) => setNewUser((u) => ({ ...u, role: e.target.value }))}
                     >
                       <option value="SALES_EXECUTIVE">Sales Executive</option>
-                      <option value="MANAGER">Manager</option>
+                      <option value="SALES_MANAGER">Sales Manager</option>
+                      <option value="EVENT_MANAGER">Event Manager</option>
+                      <option value="FINANCE_MANAGER">Finance Manager</option>
+                      <option value="MANAGEMENT">Management</option>
+                      <option value="VENDOR">Vendor</option>
                       <option value="SUPER_ADMIN">Super Admin</option>
                     </select>
                   </Field>
