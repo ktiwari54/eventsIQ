@@ -44,8 +44,8 @@ export async function POST(req: NextRequest) {
 
   const name =
     extractField(fields, "name", "full name", "fullname", "contact name") ??
-    [extractField(fields, "first"), extractField(fields, "last")].filter(Boolean).join(" ") ||
-    "Unknown";
+    ([extractField(fields, "first"), extractField(fields, "last")].filter(Boolean).join(" ") ||
+    "Unknown");
 
   const email = extractField(fields, "email", "e-mail", "email address");
   const phone = extractField(fields, "phone", "mobile", "contact number", "tel");
