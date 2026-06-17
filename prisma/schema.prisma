@@ -8,7 +8,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // ----------------------------------------------------------------------------
@@ -110,6 +109,60 @@ enum SyncDirection {
 }
 
 // ----------------------------------------------------------------------------
+// SaaS Plans & Subscriptions
+// ----------------------------------------------------------------------------
+enum PlanTier {
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+enum BillingCycle {
+  MONTHLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
+
+model Plan {
+  id            String    @id @default(cuid())
+  name          String
+  tier          PlanTier  @unique
+  monthlyPrice  Decimal   @db.Decimal(10, 2)
+  yearlyPrice   Decimal   @db.Decimal(10, 2)
+  maxUsers      Int       @default(5)
+  maxEvents     Int       @default(10)
+  maxLeads      Int       @default(500)
+  features      Json      @default("[]")
+  createdAt     DateTime  @default(now())
+
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id               String             @id @default(cuid())
+  orgId            String             @unique
+  planId           String
+  status           SubscriptionStatus @default(TRIALING)
+  billingCycle     BillingCycle       @default(MONTHLY)
+  trialEndsAt      DateTime?
+  currentPeriodEnd DateTime?
+  canceledAt       DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  plan         Plan         @relation(fields: [planId], references: [id])
+
+  @@index([status])
+}
+
+// ----------------------------------------------------------------------------
 // Tenancy & Identity
 // ----------------------------------------------------------------------------
 model Organization {
@@ -124,6 +177,7 @@ model Organization {
   leads        Lead[]
   vendors      Vendor[]
   zohoConfig   ZohoConfig?
+  subscription Subscription?
 }
 
 model User {
