@@ -52,7 +52,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     data: {
       formId: id,
       ...parsed.data,
-      options: parsed.data.options ?? null,
+      options: parsed.data.options ?? undefined,
     },
   });
 
