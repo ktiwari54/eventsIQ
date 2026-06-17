@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
@@ -11,7 +11,7 @@ const PLAN_LABELS: Record<string, string> = {
   ENTERPRISE: "Enterprise — $399/mo",
 };
 
-export default function SignupPage() {
+function SignupForm() {
   const router = useRouter();
   const params = useSearchParams();
   const plan = params.get("plan") ?? "PRO";
@@ -60,7 +60,6 @@ export default function SignupPage() {
         setError(data.error ?? "Signup failed. Please try again.");
         return;
       }
-      // Auto sign-in after successful registration
       const result = await signIn("credentials", {
         email: form.email,
         password: form.password,
@@ -190,5 +189,13 @@ export default function SignupPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense>
+      <SignupForm />
+    </Suspense>
   );
 }
