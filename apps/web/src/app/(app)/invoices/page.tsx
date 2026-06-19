@@ -126,7 +126,7 @@ export default function InvoicesPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         {[
           { label: "Total Invoiced", value: `$${Number(totalInvoiced).toLocaleString("en-US", { minimumFractionDigits: 2 })}` },
           { label: "Paid", value: `$${Number(summary.totalPaid).toLocaleString("en-US", { minimumFractionDigits: 2 })}` },

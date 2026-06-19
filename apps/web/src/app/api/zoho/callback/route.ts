@@ -5,11 +5,16 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const code = searchParams.get("code");
   const orgId = searchParams.get("state");
+  const zohoError = searchParams.get("error");
 
   const origin = new URL(req.url).origin;
   const xHost = req.headers.get("x-forwarded-host");
   const xProto = req.headers.get("x-forwarded-proto") ?? "https";
   const derivedOrigin = xHost ? `${xProto}://${xHost}` : origin;
+
+  if (zohoError) {
+    return NextResponse.redirect(`${derivedOrigin}/zoho?error=${encodeURIComponent(zohoError)}`);
+  }
 
   if (!code || !orgId) {
     return NextResponse.redirect(`${derivedOrigin}/zoho?error=missing_params`);

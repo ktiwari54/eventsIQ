@@ -456,6 +456,7 @@ model ZohoConfig {
   orgId        String   @unique
   clientId     String
   clientSecret String
+  dataCenter   String   @default("com")
   refreshToken String?
   accessToken  String?
   apiDomain    String   @default("https://www.zohoapis.com")

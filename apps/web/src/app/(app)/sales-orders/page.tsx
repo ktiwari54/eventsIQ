@@ -181,7 +181,7 @@ export default function SalesOrdersPage() {
           <div className="card w-full max-w-lg my-8">
             <h2 className="font-bold text-white text-lg mb-4">New Sales Order</h2>
             <form onSubmit={createOrder} className="space-y-4">
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="text-xs text-muted uppercase tracking-wide font-semibold mb-1 block">Currency</label>
                   <input className="input w-full" value={newOrder.currency} onChange={(e) => setNewOrder((o) => ({ ...o, currency: e.target.value }))} />
