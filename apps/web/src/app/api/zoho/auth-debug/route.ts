@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const SCOPES = "ZohoCRM.modules.ALL";
+const SCOPES = "ZohoCRM.modules.leads.READ,ZohoCRM.modules.leads.WRITE,ZohoCRM.modules.contacts.READ,ZohoCRM.modules.contacts.WRITE,ZohoCRM.modules.deals.READ,ZohoCRM.modules.deals.WRITE";
 
 // GET /api/zoho/auth-debug — shows the OAuth URL without redirecting, for troubleshooting
 export async function GET(req: NextRequest) {
