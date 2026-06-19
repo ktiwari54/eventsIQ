@@ -26,14 +26,13 @@ export async function GET(req: NextRequest) {
   const params = new URLSearchParams({
     response_type: "code",
     client_id: cfg.clientId,
-    scope: SCOPES,
     redirect_uri: callbackUrl,
     access_type: "offline",
     state: token.orgId as string,
   });
 
   const dc = cfg.dataCenter ?? "com";
-  const fullUrl = `https://accounts.zoho.${dc}/oauth/v2/auth?${params.toString()}`;
+  const fullUrl = `https://accounts.zoho.${dc}/oauth/v2/auth?${params.toString()}&scope=${SCOPES}`;
 
   return NextResponse.json({
     redirectUri: callbackUrl,

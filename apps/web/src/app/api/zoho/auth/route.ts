@@ -21,15 +21,16 @@ export async function GET(req: NextRequest) {
   const xProto = req.headers.get("x-forwarded-proto") ?? "https";
   const derivedOrigin = xHost ? `${xProto}://${xHost}` : origin;
   const callbackUrl = process.env.ZOHO_REDIRECT_URI ?? `${derivedOrigin}/api/zoho/callback`;
+
+  // Build params without scope to avoid URLSearchParams encoding commas as %2C
   const params = new URLSearchParams({
     response_type: "code",
     client_id: cfg.clientId,
-    scope: SCOPES,
     redirect_uri: callbackUrl,
     access_type: "offline",
     state: token.orgId as string,
   });
 
   const dc = cfg.dataCenter ?? "com";
-  return NextResponse.redirect(`https://accounts.zoho.${dc}/oauth/v2/auth?${params.toString()}`);
+  return NextResponse.redirect(`https://accounts.zoho.${dc}/oauth/v2/auth?${params.toString()}&scope=${SCOPES}`);
 }
