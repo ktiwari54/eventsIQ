@@ -6,6 +6,7 @@ import { Suspense } from "react";
 
 type Config = { clientId?: string; apiDomain?: string; connected: boolean; orgId?: string; dataCenter?: string };
 type SyncResult = { synced: number; failed: number; total: number } | null;
+type SelfClientForm = { clientId: string; clientSecret: string; authCode: string; dataCenter: string };
 
 const MODULES = [
   { key: "leads", label: "Leads", icon: "👥", desc: "Push unsynced leads to Zoho CRM Leads module." },
@@ -38,6 +39,9 @@ function ZohoPageInner() {
   const [results, setResults] = useState<Record<string, SyncResult>>({});
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [selfClient, setSelfClient] = useState<SelfClientForm>({ clientId: "", clientSecret: "", authCode: "", dataCenter: "com" });
+  const [exchanging, setExchanging] = useState(false);
+  const [showSelfClient, setShowSelfClient] = useState(false);
 
   const showToast = useCallback((msg: string, type: "success" | "error") => setToast({ msg, type }), []);
 
@@ -75,6 +79,29 @@ function ZohoPageInner() {
       setCfg((c) => ({ ...c, clientId: form.clientId }));
       showToast("Config saved. Now click Connect to authorize.", "success");
     } finally { setSaving(false); }
+  }
+
+  async function exchangeSelfClient(e: React.FormEvent) {
+    e.preventDefault();
+    setExchanging(true);
+    try {
+      const res = await fetch("/api/zoho/self-client", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(selfClient),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(`Error: ${data.error}`, "error");
+        return;
+      }
+      showToast("Zoho CRM connected successfully via Self Client!", "success");
+      setSelfClient((f) => ({ ...f, authCode: "" }));
+      // Reload config
+      fetch("/api/zoho/config").then((r) => r.json()).then((d: Config) => setCfg(d));
+    } finally {
+      setExchanging(false);
+    }
   }
 
   async function syncModule(key: ModuleKey) {
@@ -187,6 +214,63 @@ function ZohoPageInner() {
             <p className="text-xs text-muted mt-2">Save your credentials first.</p>
           )}
         </div>
+      </div>
+
+      {/* Self Client exchange */}
+      <div className="card mb-6 border-yellow-500/30 bg-yellow-500/5">
+        <button
+          onClick={() => setShowSelfClient((v) => !v)}
+          className="w-full flex items-center justify-between text-left"
+        >
+          <div>
+            <h2 className="font-bold text-white">Alternative: Self Client / Manual Token Exchange</h2>
+            <p className="text-muted text-xs mt-0.5">
+              If the OAuth redirect keeps failing, use Zoho&apos;s Self Client to generate an auth code and paste it here.
+            </p>
+          </div>
+          <span className="text-muted text-lg ml-4">{showSelfClient ? "▲" : "▼"}</span>
+        </button>
+
+        {showSelfClient && (
+          <div className="mt-4 border-t border-yellow-500/20 pt-4">
+            <ol className="text-xs text-muted list-decimal pl-4 space-y-1 mb-4">
+              <li>Go to <strong className="text-white">api-console.zoho.com</strong> → Self Client</li>
+              <li>Enter scope: <code className="text-accent">ZohoCRM.modules.ALL</code></li>
+              <li>Set time duration to <strong className="text-white">10 minutes</strong></li>
+              <li>Click <strong className="text-white">Create</strong> — copy the auth code immediately</li>
+              <li>Paste all fields below and click Exchange</li>
+            </ol>
+            <form onSubmit={exchangeSelfClient} className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted uppercase tracking-wide font-semibold mb-1 block">Data Center</label>
+                  <select className="input w-full" value={selfClient.dataCenter} onChange={(e) => setSelfClient((f) => ({ ...f, dataCenter: e.target.value }))}>
+                    <option value="com">US (zoho.com)</option>
+                    <option value="in">India (zoho.in)</option>
+                    <option value="eu">Europe (zoho.eu)</option>
+                    <option value="com.au">Australia (zoho.com.au)</option>
+                    <option value="jp">Japan (zoho.jp)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted uppercase tracking-wide font-semibold mb-1 block">Client ID</label>
+                  <input className="input w-full" value={selfClient.clientId} onChange={(e) => setSelfClient((f) => ({ ...f, clientId: e.target.value }))} required placeholder="1000.XXXX..." />
+                </div>
+                <div>
+                  <label className="text-xs text-muted uppercase tracking-wide font-semibold mb-1 block">Client Secret</label>
+                  <input className="input w-full" type="password" value={selfClient.clientSecret} onChange={(e) => setSelfClient((f) => ({ ...f, clientSecret: e.target.value }))} required placeholder="••••••••" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted uppercase tracking-wide font-semibold mb-1 block">Auth Code (fresh — expires in 10 min)</label>
+                  <input className="input w-full" value={selfClient.authCode} onChange={(e) => setSelfClient((f) => ({ ...f, authCode: e.target.value }))} required placeholder="1000.xxxxxxxx..." />
+                </div>
+              </div>
+              <button type="submit" disabled={exchanging} className="btn btn-primary disabled:opacity-50 text-sm">
+                {exchanging ? "Exchanging…" : "Exchange & Connect"}
+              </button>
+            </form>
+          </div>
+        )}
       </div>
 
       {/* Sync modules */}
