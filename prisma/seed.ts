@@ -138,7 +138,136 @@ async function main() {
     ],
   });
 
-  console.log("✅ Seed complete. Login: admin@eventiq.dev / Password123!");
+  // ----------------------------------------------------------------------------
+  // TFC Organization
+  // ----------------------------------------------------------------------------
+  const tfc = await prisma.organization.upsert({
+    where: { slug: "tfc" },
+    update: {},
+    create: { name: "TFC", slug: "tfc" },
+  });
+
+  const tfcAdmin = await prisma.user.upsert({
+    where: { email: "admin@tfc.dev" },
+    update: {},
+    create: {
+      orgId: tfc.id,
+      name: "TFC Admin",
+      email: "admin@tfc.dev",
+      role: "SUPER_ADMIN",
+      password: passwordHash,
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: "sales@tfc.dev" },
+    update: {},
+    create: {
+      orgId: tfc.id,
+      name: "TFC Sales Exec",
+      email: "sales@tfc.dev",
+      role: "SALES_EXECUTIVE",
+      password: passwordHash,
+    },
+  });
+
+  const tfcEventsData = [
+    { name: "TFC Expo 2027", type: "EXHIBITION", city: "Bangalore", revenue: 12000000, budget: 4000000, leads: 500 },
+    { name: "TFC Summit", type: "CONFERENCE", city: "Mumbai", revenue: 8000000, budget: 3000000, leads: 320 },
+  ] as const;
+
+  for (const e of tfcEventsData) {
+    const event = await prisma.event.create({
+      data: {
+        orgId: tfc.id,
+        ownerId: tfcAdmin.id,
+        name: e.name,
+        type: e.type,
+        status: "ACTIVE",
+        city: e.city,
+        country: "India",
+        startDate: new Date("2027-03-01"),
+        endDate: new Date("2027-03-04"),
+        expectedLeads: e.leads,
+        expectedRevenue: e.revenue,
+        budgetTotal: e.budget,
+      },
+    });
+
+    const budget = await prisma.budget.create({
+      data: { eventId: event.id, category: "BOOTH", estimated: e.budget, approved: e.budget, actual: e.budget, status: "APPROVED" },
+    });
+    await prisma.expense.create({
+      data: { budgetId: budget.id, eventId: event.id, amount: e.budget, description: "Booth + logistics" },
+    });
+
+    const tfcLeads = [
+      { name: "Anil Sharma", company: "TFC Partners", designation: "CEO", vol: 3_000_000, brands: ["Samsung"] },
+      { name: "Priya Mehta", company: "TFC Retail", designation: "Director", vol: 2_500_000, brands: ["Apple", "Vivo"] },
+    ];
+    for (const l of tfcLeads) {
+      const s = scoreLead({
+        monthlyPurchaseVolume: l.vol,
+        designation: l.designation,
+        interestedBrands: l.brands,
+        region: e.city,
+        buyingTimelineDays: 30,
+        companySize: 300,
+        previousInteractions: 1,
+      });
+      await prisma.lead.create({
+        data: {
+          orgId: tfc.id,
+          eventId: event.id,
+          ownerId: tfcAdmin.id,
+          name: l.name,
+          company: l.company,
+          designation: l.designation,
+          city: e.city,
+          interestedBrands: l.brands,
+          monthlyPurchaseVolume: l.vol,
+          source: "MANUAL",
+          score: s.score,
+          grade: s.grade,
+          heat: s.heat,
+          scoreFactors: s.factors,
+          aiSuggestion: s.suggestion,
+          converted: s.score > 80,
+        },
+      });
+    }
+
+    const roi = computeRoi({
+      totalCost: e.budget,
+      revenue: e.revenue,
+      totalLeads: e.leads,
+      qualifiedLeads: Math.round(e.leads * 0.3),
+      convertedLeads: Math.round(e.leads * 0.08),
+    });
+    await prisma.roiMetric.create({
+      data: {
+        eventId: event.id,
+        totalCost: e.budget,
+        revenue: e.revenue,
+        roi: roi.roi,
+        costPerLead: roi.costPerLead,
+        costPerQL: roi.costPerQL,
+        revenuePerLead: roi.revenuePerLead,
+        conversionRate: roi.conversionRate,
+      },
+    });
+  }
+
+  await prisma.vendor.createMany({
+    data: [
+      { orgId: tfc.id, name: "TFC Displays", vendorType: "Booth Fabricator", city: "Bangalore", rating: 4 },
+      { orgId: tfc.id, name: "TFC Print Co", vendorType: "Printer", city: "Mumbai", rating: 4 },
+    ],
+  });
+
+  console.log("✅ Seed complete.");
+  console.log("   Demo org  → admin@eventiq.dev / Password123!");
+  console.log("   TFC org   → admin@tfc.dev / Password123!");
 }
 
 main()
